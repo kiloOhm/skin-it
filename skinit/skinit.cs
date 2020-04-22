@@ -19,7 +19,7 @@ namespace Oxide.Plugins
         #region references
 
         private GUICreator guiCreator;
-
+        
 
         #endregion
 
@@ -114,6 +114,7 @@ namespace Oxide.Plugins
             lang.RegisterMessages(messages, this);
             cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
+            guiCreator.registerImage(this, "background", "https://i.ibb.co/44NqsyG/background.png");
         }
 
         private void OnPlayerLootEnd(PlayerLoot loot)
@@ -151,6 +152,8 @@ namespace Oxide.Plugins
 
         public void sendUI(virtualContainer container)
         {
+            GuiContainer containerGUI = new GuiContainer(this, "background");
+            containerGUI.addImage("background", new Rectangle(0, 0, 1920, 1080, 1920, 1080, true), "background", GuiContainer.Layer.menu, null, 0, 0);
 
         }
 
