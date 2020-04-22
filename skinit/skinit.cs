@@ -34,7 +34,7 @@ namespace Oxide.Plugins
         DynamicConfigFile File;
         StoredData storedData;
 
-        private const int slot = 20;
+        private const int slot = 19;
         #endregion
 
         #region classes
@@ -114,7 +114,21 @@ namespace Oxide.Plugins
             lang.RegisterMessages(messages, this);
             cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
-            guiCreator.registerImage(this, "background", "https://i.ibb.co/44NqsyG/background.png");
+            guiCreator.registerImage(this, "GUI_1_1", "https://i.ibb.co/NN6RxY0/GUI-1-1.png");
+            guiCreator.registerImage(this, "GUI_1_2", "https://i.ibb.co/YdTq4nc/GUI-2-1.png");
+            guiCreator.registerImage(this, "GUI_1_3", "https://i.ibb.co/6BjwM3s/GUI-3-1.png");
+            guiCreator.registerImage(this, "GUI_1_4", "https://i.ibb.co/j5cfVty/GUI-4-1.png");
+            guiCreator.registerImage(this, "GUI_1_5", "https://i.ibb.co/1G1FXv3/GUI-5-1.png");
+            guiCreator.registerImage(this, "GUI_1_6", "https://i.ibb.co/qrRmPhm/GUI-6-1.png");
+            guiCreator.registerImage(this, "GUI_1_7", "https://i.ibb.co/Kx87XFz/GUI-7-1.png");
+            guiCreator.registerImage(this, "GUI_1_8", "https://i.ibb.co/9ntZTXR/GUI-8-1.png");
+            guiCreator.registerImage(this, "GUI_1_9", "https://i.ibb.co/PG5XTGj/GUI-9-1.png");
+            guiCreator.registerImage(this, "GUI_1_10", "https://i.ibb.co/XJ8gkzv/GUI-10-1.png");
+            guiCreator.registerImage(this, "GUI_1_11", "https://i.ibb.co/hsFnmd9/GUI-11-1.png");
+            guiCreator.registerImage(this, "GUI_1_12", "https://i.ibb.co/qYw4VDh/GUI-12-1.png");
+            guiCreator.registerImage(this, "GUI_1_13", "https://i.ibb.co/B6WRv3Q/GUI-13-1.png");
+            guiCreator.registerImage(this, "GUI_1_14", "https://i.ibb.co/JH7BsnM/GUI-14-1.png");
+            guiCreator.registerImage(this, "background", "https://i.ibb.co/5TyZK1c/Skin-Mockup.png");
         }
 
         private void OnPlayerLootEnd(PlayerLoot loot)
@@ -153,7 +167,22 @@ namespace Oxide.Plugins
         public void sendUI(virtualContainer container)
         {
             GuiContainer containerGUI = new GuiContainer(this, "background");
-            containerGUI.addImage("background", new Rectangle(0, 0, 1920, 1080, 1920, 1080, true), "background", GuiContainer.Layer.overlay, null, 0, 0);
+            containerGUI.addImage("GUI_1_1", new Rectangle(660, 30, 1260, 540, 1920, 1080, true), "GUI_1_1", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_2", new Rectangle(1230, 570, 126, 242, 1920, 1080, true), "GUI_1_2", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_3", new Rectangle(1356, 570, 564, 71, 1920, 1080, true), "GUI_1_3", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_4", new Rectangle(1440, 641, 480, 89, 1920, 1080, true), "GUI_1_4", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_5", new Rectangle(1356, 730, 564, 82, 1920, 1080, true), "GUI_1_5", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_6", new Rectangle(394, 30, 266, 784, 1920, 1080, true), "GUI_1_6", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_7", new Rectangle(2, 30, 134, 779, 1920, 1080, true), "GUI_1_7", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_8", new Rectangle(2, 1056, 1920, 22, 1920, 1080, true), "GUI_1_8", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_9", new Rectangle(1230, 812, 691, 244, 1920, 1080, true), "GUI_1_9", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_10", new Rectangle(2, 814, 658, 23, 1920, 1080, true), "GUI_1_10", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_11", new Rectangle(2, 906, 658, 150, 1920, 1080, true), "GUI_1_11", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_12", new Rectangle(2, 837, 74, 71, 1920, 1080, true), "GUI_1_12", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_13", new Rectangle(640, 837, 20, 71, 1920, 1080, true), "GUI_1_13", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("GUI_1_14", new Rectangle(2, 0, 1920, 30, 1920, 1080, true), "GUI_1_14", GuiContainer.Layer.menu, null, 0, 0);
+            containerGUI.addImage("background", new Rectangle(0, 0, 1920, 1080, 1920, 1080, true), "background", GuiContainer.Layer.hud, null, 0, 0);
+            containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(""));
             containerGUI.display(container.player);
             container.player.ChatMessage("sendUIworked"); // debug
         }
