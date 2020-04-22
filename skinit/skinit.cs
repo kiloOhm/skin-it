@@ -153,8 +153,9 @@ namespace Oxide.Plugins
         public void sendUI(virtualContainer container)
         {
             GuiContainer containerGUI = new GuiContainer(this, "background");
-            containerGUI.addImage("background", new Rectangle(0, 0, 1920, 1080, 1920, 1080, true), "background", GuiContainer.Layer.menu, null, 0, 0);
-
+            containerGUI.addImage("background", new Rectangle(0, 0, 1920, 1080, 1920, 1080, true), "background", GuiContainer.Layer.overlay, null, 0, 0);
+            containerGUI.display(container.player);
+            container.player.ChatMessage("sendUIworked"); // debug
         }
 
         public void closeUI(virtualContainer container)
