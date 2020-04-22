@@ -1,9 +1,14 @@
-﻿using Newtonsoft.Json;
+﻿// Requires: GUICreator
+
+#define DEBUG
+using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
+using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using static Oxide.Plugins.GUICreator;
 
 namespace Oxide.Plugins
 {
@@ -11,81 +16,185 @@ namespace Oxide.Plugins
     [Description("Template")]
     class skinit : RustPlugin
     {
-        #region fields
+        #region references
+
+        private GUICreator guiCreator;
+
+
+        #endregion
+
+        #region global
+        private static skinit pluginInstance = null;
+
+        public skinit()
+        {
+            pluginInstance = this;
+        }
+
         DynamicConfigFile File;
         StoredData storedData;
+
+        private const int slot = 20;
         #endregion
 
         #region classes
 
-        pub
+        public class virtualContainer:MonoBehaviour
+        {
+            public BasePlayer player;
+            public ItemContainer itemContainer;
+            public uint uid;
+            public Item item = null;
+
+            public virtualContainer() { }
+
+            public void init(BasePlayer player)
+            {
+                this.player = player;
+                itemContainer = new ItemContainer
+                {
+                    entityOwner = player,
+                    playerOwner = player,
+                    capacity = slot+1,
+                    isServer = true,
+                    allowedContents = ItemContainer.ContentsType.Generic
+                };
+                itemContainer.GiveUID();
+                this.uid = itemContainer.uid;
+            }
+
+            public static virtualContainer find(BasePlayer player)
+            {
+                virtualContainer output = null;
+
+                player.gameObject.TryGetComponent<virtualContainer>(out output);
+
+                return output;
+            }
+
+            public void send()
+            {
+                if (player == null || itemContainer == null) return;
+                PlayerLoot loot = player.inventory.loot;
+
+                loot.Clear();
+                loot.PositionChecks = false;
+                loot.entitySource = player;
+                loot.itemSource = null;
+                loot.AddContainer(itemContainer);
+                loot.SendImmediate();
+
+                player.ClientRPCPlayer(null, player, "RPC_OpenLootPanel", "generic");
+
+                pluginInstance.sendUI(this);
+                pluginInstance.Subscribe(nameof(CanAcceptItem));
+            }
+
+            public void close()
+            {
+                if(item != null) player.GiveItem(item);
+                pluginInstance.closeUI(this);
+                Destroy(this);
+            }
+        }
 
         #endregion
 
         #region oxide hooks
         void Init()
         {
-            permission.RegisterPermission("RPT.use", this);
+            permission.RegisterPermission("skinit.use", this);
             File = Interface.Oxide.DataFileSystem.GetFile("skinit/posData");
             loadData();
         }
 
-        void Loaded()
+        void OnServerInitialized()
         {
+            guiCreator = (GUICreator)Manager.GetPlugin("GUICreator");
             lang.RegisterMessages(messages, this);
             cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
         }
 
+        private void OnPlayerLootEnd(PlayerLoot loot)
+        {
+            var player = loot.gameObject.GetComponent<BasePlayer>();
+            if (player != loot.entitySource)
+                return;
+
+#if DEBUG
+            player.ChatMessage("OnPlayerLootEnd: closing virtualContainer");
+#endif
+            virtualContainer.find(player)?.close();
+            Unsubscribe(nameof(CanAcceptItem));
+        }
+
         ItemContainer.CanAcceptResult? CanAcceptItem(ItemContainer container, Item item, int targetPos)
         {
-            BasePlayer owner = container?.GetOwnerPlayer();
-            if(!owner) return null;
-            owner.ChatMessage($"CanAcceptItem: container:{container.uid}, isServer:{container.isServer}");
+            BasePlayer player = container?.GetOwnerPlayer();
+            if(!player) return null;
+#if DEBUG
+            player.ChatMessage($"CanAcceptItem: container:{container?.uid}, item:{item?.amount} x {item?.info?.displayName?.english}, targetPos:{targetPos}");
+#endif
+            virtualContainer vContainer = virtualContainer.find(player);
+            if (vContainer == null) return null;
+            if (vContainer.uid != container.uid) return null;
+            if (targetPos != slot) return ItemContainer.CanAcceptResult.CannotAccept;
+            vContainer.item = item;
+            onItemInserted(vContainer, item);
+
             return null;
         }
+        #endregion
+
+        #region UI
+
+        public void sendUI(virtualContainer container)
+        {
+
+        }
+
+        public void closeUI(virtualContainer container)
+        {
+
+        }
+
+        private void onItemInserted(virtualContainer container, Item item)
+        {
+#if DEBUG
+            PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
+#endif
+        }
+
         #endregion
 
         #region commands
         //see Loaded() hook
         private void skinitCommand(BasePlayer player, string command, string[] args)
         {
+#if DEBUG
+            player.ChatMessage("skinnitCommand");
+#endif
             if (!permission.UserHasPermission(player.UserIDString, "skinit.use"))
             {
                 PrintToChat(player, lang.GetMessage("noPermission", this, player.UserIDString));
                 return;
             }
+            virtualContainer container = virtualContainer.find(player);
+            if (container != null) Puts($"Skin-it: {player.displayName} already has a vContainer... this shouldn't happen");
+            container = player.gameObject.AddComponent<virtualContainer>();
+            container.init(player);
+            timer.Once(0.5f, () => container.send());
         }
 
         private void testCommand(BasePlayer player, string command, string[] args)
         {
+#if DEBUG
             player.ChatMessage("testing");
-            timer.Once(0.5f, () => sendContainer(player));
+#endif
+
         }
 
-        private void sendContainer(BasePlayer player)
-        {
-            ItemContainer itemContainer = new ItemContainer
-            {
-                entityOwner = player,
-                capacity = 1,
-                isServer = true,
-                allowedContents = ItemContainer.ContentsType.Generic,
-            };
-
-            itemContainer.GiveUID();
-
-            PlayerLoot loot = player.inventory.loot;
-
-            loot.Clear();
-            loot.PositionChecks = false;
-            loot.entitySource = player;
-            loot.itemSource = null;
-            loot.AddContainer(itemContainer);
-            loot.SendImmediate();
-
-            player.ClientRPCPlayer(null, player, "RPC_OpenLootPanel", "generic");
-        }
         #endregion
 
         #region data management
