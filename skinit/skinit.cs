@@ -2,6 +2,7 @@
 
 #define DEBUG
 //#define DEBUG2
+using Facepunch.Extend;
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
@@ -9,6 +10,7 @@ using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
+using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -48,6 +50,7 @@ namespace Oxide.Plugins
         {
             public string name;
             public string safename => Regex.Replace(name, " ", "_");
+            public string category;
             public string shortname;
             public ulong id;
             public string url;
@@ -181,15 +184,20 @@ namespace Oxide.Plugins
         void OnServerInitialized()
         {
             //process config
-            List<ulong> toBeAdded = new List<ulong>();
-            foreach(string key in config.skins.Keys)
+
+            foreach(string shortname in config.skins.Keys)
             {
-                foreach(ulong id in config.skins[key])
+                foreach(string category in config.skins[shortname].Keys)
                 {
-                    if (!storedData.containsSkin(id)) toBeAdded.Add(id);
+                    List<ulong> toBeAdded = new List<ulong>();
+                    foreach(ulong id in config.skins[shortname][category])
+                    {
+                        if (!storedData.containsSkin(id)) toBeAdded.Add(id);
+                    }
+                    addSkins(toBeAdded, category, false);
                 }
             }
-            addSkins(toBeAdded, false);
+            
 
             //references
             guiCreator = (GUICreator)Manager.GetPlugin("GUICreator");
@@ -395,12 +403,13 @@ namespace Oxide.Plugins
                 switch (args[0])
                 {
                     case "add":
+                        if (args.Length < 3) return; 
                         List<ulong> IDs = new List<ulong>();
-                        for(int i = 1; i < args.Length; i++)
+                        for(int i = 2; i < args.Length; i++)
                         {
                             IDs.Add(ulong.Parse(args[i]));
                         }
-                        addSkins(IDs);
+                        addSkins(IDs, args[1]);
                         break;
                 }
             }
@@ -411,28 +420,38 @@ namespace Oxide.Plugins
 #if DEBUG
             player.ChatMessage("testing");
 #endif
-            List<string> categoriesList = new List<string> { "category 1", "category 2", "category 3", "category 4", "category 5", "category 6", "category 7", "category 8", };
-            categories(player,categoriesList );
-        } 
+            applySkin(player.GetActiveItem(), ulong.Parse(args[0]));
+        }
         #endregion
 
         #region helpers
 
-        private void addSkins(List<ulong> IDs, bool cfg = true)
+        public void applySkin(Item item, ulong skinID)
+        {
+            item.skin = skinID;
+            item.MarkDirty();
+        }
+
+        private void addSkins(List<ulong> IDs, string category, bool cfg = true)
         {
             Action<List<skin>> callback = (skins) =>
             {
                 foreach(skin s in skins)
                 {
+                    s.category = category;
                     if (!storedData.skins.Contains(s)) storedData.skins.Add(s);
 
                     if(cfg)
                     {
                         if (!config.skins.ContainsKey(s.shortname))
                         {
-                            config.skins.Add(s.shortname, new List<ulong>());
+                            config.skins.Add(s.shortname, new Dictionary<string, List<ulong>>());
                         }
-                        config.skins[s.shortname].Add(s.id);
+                        if(!config.skins[s.shortname].ContainsKey(category))
+                        {
+                            config.skins[s.shortname].Add(category, new List<ulong>());
+                        }
+                        config.skins[s.shortname][category].Add(s.id);
                     }
                 }
                 saveData();
@@ -556,7 +575,7 @@ namespace Oxide.Plugins
         private class ConfigData
         {
             [JsonProperty(PropertyName = "Allow Pos Command")]
-            public Dictionary<string, List<ulong>> skins;
+            public Dictionary<string, Dictionary<string, List<ulong>>> skins;
 
         }
 
@@ -564,14 +583,19 @@ namespace Oxide.Plugins
         {
             return new ConfigData
             {
-                skins = new Dictionary<string, List<ulong>>
+                skins = new Dictionary<string, Dictionary<string, List<ulong>>>
                 {
-                    {"rock", new List<ulong>
-                    {
-                        2061119719,
-                        2062928637,
-                        2030659199
-                    }}
+                    {"rock", new Dictionary<string, List<ulong>>
+                        {
+                            { "main", new List<ulong>
+                                {
+                                    2061119719,
+                                    2062928637,
+                                    2030659199
+                                }
+                            }
+                        }
+                    }
                 }
             };
         }
