@@ -1,27 +1,30 @@
 ﻿// Requires: GUICreator
 
 #define DEBUG
+//#define DEBUG2
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
+using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
-using Rust.Workshop;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using static Oxide.Plugins.GUICreator;
 
 namespace Oxide.Plugins
 {
     [Info("skinit", "Ohm & Bunsen", "0.1.0")]
-    [Description("Template")]
+    [Description("GUI based Item skinning")]
     class skinit : RustPlugin
     {
         #region references
+        [PluginReference]
+        private Plugin ImageLibrary;
 
         private GUICreator guiCreator;
-        
 
         #endregion
 
@@ -41,7 +44,16 @@ namespace Oxide.Plugins
 
         #region classes
 
-        public class virtualContainer:MonoBehaviour
+        public class skin
+        {
+            public string name;
+            public string safename => Regex.Replace(name, " ", "_");
+            public string shortname;
+            public ulong id;
+            public string url;
+        }
+
+        public class virtualContainer : MonoBehaviour
         {
             public BasePlayer player;
             public ItemContainer itemContainer;
@@ -52,12 +64,15 @@ namespace Oxide.Plugins
 
             public void init(BasePlayer player)
             {
+#if DEBUG2
+                player.ChatMessage("initialized virtual container");
+#endif
                 this.player = player;
                 itemContainer = new ItemContainer
                 {
                     entityOwner = player,
                     playerOwner = player,
-                    capacity = slot+1,
+                    capacity = slot + 1,
                     isServer = true,
                     allowedContents = ItemContainer.ContentsType.Generic
                 };
@@ -67,6 +82,9 @@ namespace Oxide.Plugins
 
             public static virtualContainer find(BasePlayer player)
             {
+#if DEBUG2
+                player.ChatMessage("finding virtual container");
+#endif
                 virtualContainer output = null;
 
                 player.gameObject.TryGetComponent<virtualContainer>(out output);
@@ -76,6 +94,9 @@ namespace Oxide.Plugins
 
             public void send()
             {
+#if DEBUG2
+                player.ChatMessage("sending virtual container");
+#endif
                 if (player == null || itemContainer == null) return;
                 PlayerLoot loot = player.inventory.loot;
 
@@ -89,18 +110,62 @@ namespace Oxide.Plugins
                 player.ClientRPCPlayer(null, player, "RPC_OpenLootPanel", "generic");
 
                 pluginInstance.sendUI(this);
-
-
-
                 pluginInstance.Subscribe(nameof(CanAcceptItem));
             }
 
             public void close()
             {
-                if(item != null) player.GiveItem(item);
+#if DEBUG2
+                player.ChatMessage("closing virtual container");
+#endif
+                if (item != null) player.GiveItem(item);
                 pluginInstance.closeUI(this);
                 Destroy(this);
             }
+        }
+
+        public class tag_
+        {
+            public string tag;
+        }
+
+        public class publishedFile
+        {
+            public string publishedfileid;
+            public int result;
+            public string creator;
+            public ulong creator_app_id;
+            public ulong consumer_app_id;
+            public string filename;
+            public ulong file_size;
+            public string preview_url;
+            public string hcontent_preview;
+            public string title;
+            public string description;
+            public ulong time_created;
+            public ulong time_updated;
+            public int visibility;
+            public int banned;
+            public string ban_reason;
+            public int subscriptions;
+            public int favourited;
+            public int lifetime_subscriptions;
+            public int lifetime_favourited;
+            public uint views;
+            public List<tag_> tags;
+        }
+
+        public class steamAnswer
+        {
+            public int result;
+            public int resultcount;
+            public List<publishedFile> publishedfiledetails;
+
+        }
+
+        public class webResponse
+        {
+            public steamAnswer response;
         }
 
         #endregion
@@ -109,52 +174,100 @@ namespace Oxide.Plugins
         void Init()
         {
             permission.RegisterPermission("skinit.use", this);
-            File = Interface.Oxide.DataFileSystem.GetFile("skinit/posData");
+            File = Interface.Oxide.DataFileSystem.GetFile("skinit/skins");
             loadData();
         }
 
         void OnServerInitialized()
         {
+            //process config
+            List<ulong> toBeAdded = new List<ulong>();
+            foreach (string key in config.skins.Keys)
+            {
+                foreach (ulong id in config.skins[key])
+                {
+                    if (!storedData.containsSkin(id)) toBeAdded.Add(id);
+                }
+            }
+            addSkins(toBeAdded, false);
+
+            //references
             guiCreator = (GUICreator)Manager.GetPlugin("GUICreator");
-            lang.RegisterMessages(messages, this);
+            if (ImageLibrary == null)
+            {
+                Puts("ImageLibrary is not loaded! get it here https://umod.org/plugins/image-library");
+                return;
+            }
+
+            //commands
             cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
-            guiCreator.registerImage(this, "GUI_1_1", "https://i.ibb.co/PYZ5CTh/Skin-Mockup-01.jpg"); 
-            guiCreator.registerImage(this, "GUI_1_2", "https://i.ibb.co/MfB43Xf/Skin-Mockup-02.jpg");
-            guiCreator.registerImage(this, "GUI_1_3", "https://i.ibb.co/JdMRrHC/Skin-Mockup-03.jpg");
-            guiCreator.registerImage(this, "GUI_1_4", "https://i.ibb.co/qrG3wVp/Skin-Mockup-04.jpg");
-            guiCreator.registerImage(this, "GUI_1_5", "https://i.ibb.co/bXFfyKq/Skin-Mockup-05.jpg");
-            guiCreator.registerImage(this, "GUI_1_8", "https://i.ibb.co/HgnsXgQ/Skin-Mockup-08.jpg");
-            guiCreator.registerImage(this, "GUI_1_10", "https://i.ibb.co/Wvm8p8Y/Skin-Mockup-10.jpg");
-            guiCreator.registerImage(this, "GUI_1_11", "https://i.ibb.co/stdb37p/Skin-Mockup-11.jpg");
-            guiCreator.registerImage(this, "GUI_1_12", "https://i.ibb.co/hCmRWbd/Skin-Mockup-12.jpg");
-            guiCreator.registerImage(this, "GUI_1_13", "https://i.ibb.co/bsPqctf/Skin-Mockup-13.jpg");
-            guiCreator.registerImage(this, "GUI_1_15", "https://i.ibb.co/sRYQxFG/Skin-Mockup-15.jpg");
-            guiCreator.registerImage(this, "GUI_1_16", "https://i.ibb.co/0qbzczC/Skin-Mockup-16.jpg");
-            guiCreator.registerImage(this, "GUI_1_17", "https://i.ibb.co/QJRRvVW/Skin-Mockup-17.jpg");
-            // guiCreator.registerImage(this, "GUI_1_6", "https://i.ibb.co/MGMGxXB/Skin-Mockup-06.jpg");
-            guiCreator.registerImage(this, "GUI_1_7", "https://i.ibb.co/xL0q2NH/Skin-Mockup-07.jpg");
-            guiCreator.registerImage(this, "GUI_1_9", "https://i.ibb.co/8g8wKyN/Skin-Mockup-09.jpg");
-            guiCreator.registerImage(this, "GUI_1_14", "https://i.ibb.co/BzKWhqx/Skin-Mockup-14.jpg");
+            guiCreator.registerImage(this, "GUI_1_1", "https://i.imgur.com/jqRb4f5.jpg");
+            guiCreator.registerImage(this, "GUI_1_2", "https://i.imgur.com/A1Pcc45.jpg");
+            guiCreator.registerImage(this, "GUI_1_3", "https://i.imgur.com/rIzu5vi.jpg");
+            guiCreator.registerImage(this, "GUI_1_4", "https://i.imgur.com/WjF3WwR.jpg");
+            guiCreator.registerImage(this, "GUI_1_5", "https://i.imgur.com/SHpMWVQ.jpg");
+            guiCreator.registerImage(this, "GUI_1_8", "https://i.imgur.com/36EBskB.jpg");
+            guiCreator.registerImage(this, "GUI_1_10", "https://i.imgur.com/rIzu5vi.jpg");
+            guiCreator.registerImage(this, "GUI_1_11", "https://i.imgur.com/Cy961Zc.jpg");
+            guiCreator.registerImage(this, "GUI_1_12", "https://i.imgur.com/wdEg6lD.jpg");
+            guiCreator.registerImage(this, "GUI_1_13", "https://i.imgur.com/UFSftQD.jpg");
+            guiCreator.registerImage(this, "GUI_1_15", "https://i.imgur.com/G7B5NTh.jpg");
+            guiCreator.registerImage(this, "GUI_1_16", "https://i.imgur.com/CLfx3BO.jpg");
+            guiCreator.registerImage(this, "GUI_1_17", "https://i.imgur.com/q0sECdd.jpg");
+            // guiCreator.registerImage(this, "GUI_1_6", "https://i.imgur.com/jXNQyWB.jpg");
+            guiCreator.registerImage(this, "GUI_1_7", "https://i.imgur.com/IfsZhBv.jpg");
+            guiCreator.registerImage(this, "GUI_1_9", "https://i.imgur.com/gA0yP5Z.jpg");
+            guiCreator.registerImage(this, "GUI_1_14", "https://i.imgur.com/yHLqrQc.jpg");
+
+            //lang
+            lang.RegisterMessages(messages, this);
+
+            //hooks
+            Unsubscribe(nameof(CanAcceptItem));
+        }
+
+        private void OnSkinDataUpdated()
+        {
+            foreach (skin s in storedData.skins)
+            {
+                if (!ImageLibrary.Call<bool>("HasImage", s.safename, (ulong)0))
+                {
+                    ImageLibrary.Call<bool>("AddImage", s.url, s.safename, (ulong)0);
+                }
+            }
         }
 
         private void OnPlayerLootEnd(PlayerLoot loot)
         {
             var player = loot.gameObject.GetComponent<BasePlayer>();
-            if (player != loot.entitySource)
-                return;
+            if (player != loot.entitySource) return;
 
+            virtualContainer container = virtualContainer.find(player);
+            if (container == null) return;
 #if DEBUG
-            player.ChatMessage("OnPlayerLootEnd: closing virtualContainer");
+            player.ChatMessage($"OnPlayerLootEnd: closing virtualContainer {container.player}");
 #endif
-            virtualContainer.find(player)?.close();
+            container.close();
             Unsubscribe(nameof(CanAcceptItem));
+        }
+
+        private object CanLootPlayer(BasePlayer looter, UnityEngine.Object target)
+        {
+            if (looter != target) return null;
+#if DEBUG2
+            looter.ChatMessage("CanLootPlayer: searching for virtualContainer");
+#endif
+            var container = virtualContainer.find(looter);
+            if (container == null) return null;
+
+            return true;
         }
 
         ItemContainer.CanAcceptResult? CanAcceptItem(ItemContainer container, Item item, int targetPos)
         {
             BasePlayer player = container?.GetOwnerPlayer();
-            if(!player) return null;
+            if (!player) return null;
 #if DEBUG
             player.ChatMessage($"CanAcceptItem: container:{container?.uid}, item:{item?.amount} x {item?.info?.displayName?.english}, targetPos:{targetPos}");
 #endif
@@ -171,38 +284,45 @@ namespace Oxide.Plugins
 
         #region UI
 
+        #region UI parameters
+        float FadeIn = 0.2f;
+        float FadeOut = 0.2f;
+        #endregion
+
         public void sendUI(virtualContainer container)
         {
-            
+#if DEBUG
+            container.player.ChatMessage("sending UI");
+#endif
             GuiContainer containerGUI = new GuiContainer(this, "background");
-            containerGUI.addImage("GUI_1_1", new Rectangle(0, 0, 393, 30, 1920, 1080, true), "GUI_1_1", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_2", new Rectangle(393, 0, 265, 837, 1920, 1080, true), "GUI_1_2", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_3", new Rectangle(658, 0, 570, 573, 1920, 1080, true), "GUI_1_3", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_4", new Rectangle(1228, 0, 692, 643, 1920, 1080, true), "GUI_1_4", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_5", new Rectangle(0, 30, 134, 807, 1920, 1080, true), "GUI_1_5", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_6", new Rectangle(1228, 643, 130, 88, 1920, 1080, true), "GUI_1_8", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_7", new Rectangle(1439, 643, 481, 88, 1920, 1080, true), "GUI_1_10", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_8", new Rectangle(1228, 731, 692, 326, 1920, 1080, true), "GUI_1_11", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_9", new Rectangle(134, 814, 259, 23, 1920, 1080, true), "GUI_1_12", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_10", new Rectangle(0, 837, 74, 243, 1920, 1080, true), "GUI_1_13", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_11", new Rectangle(637, 837, 21, 71, 1920, 1080, true), "GUI_1_15", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_12", new Rectangle(74, 908, 584, 172, 1920, 1080, true), "GUI_1_16", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_13", new Rectangle(658, 1057, 1262, 23, 1920, 1080, true), "GUI_1_17", GuiContainer.Layer.menu, null, 0, 0);
-            // containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 259, 784, 1920, 1080, true), "GUI_1_6", GuiContainer.Layer.under, null, 0, 0);
-            containerGUI.addImage("GUI_1_15", new Rectangle(658, 573, 570, 484, 1920, 1080, true), "GUI_1_7", GuiContainer.Layer.under, null, 0, 0);
-            containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 88, 1920, 1080, true), "GUI_1_9", GuiContainer.Layer.under, null, 0, 0);
-            containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 563, 71, 1920, 1080, true), "GUI_1_14", GuiContainer.Layer.under, null, 0, 0);
-            containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(""));
-            containerGUI.addPlainButton("checkout", new Rectangle(1349, 892, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("SKIN-IT!",30, new GuiColor(134, 190, 41, 0.8f)));           
+            containerGUI.addImage("GUI_1_1", new Rectangle(0, 0, 392, 30, 1921, 1080, true), "GUI_1_1", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_2", new Rectangle(392, 0, 271, 837, 1921, 1081, true), "GUI_1_2", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_3", new Rectangle(663, 0, 562, 576, 1921, 1081, true), "GUI_1_3", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_4", new Rectangle(1225, 0, 695, 643, 1921, 1081, true), "GUI_1_4", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_5", new Rectangle(0, 30, 134, 807, 1921, 1081, true), "GUI_1_5", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_6", new Rectangle(1225, 643, 133, 89, 1921, 1081, true), "GUI_1_8", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_7", new Rectangle(1439, 643, 481, 89, 1921, 1081, true), "GUI_1_10", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_8", new Rectangle(1225, 732, 695, 322, 1921, 1081, true), "GUI_1_11", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_9", new Rectangle(134, 814, 258, 23, 1921, 1081, true), "GUI_1_12", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_10", new Rectangle(0, 837, 74, 243, 1921, 1081, true), "GUI_1_13", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_11", new Rectangle(631, 837, 32, 71, 1921, 1081, true), "GUI_1_15", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_12", new Rectangle(74, 908, 589, 172, 1921, 1081, true), "GUI_1_16", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_13", new Rectangle(663, 1054, 1257, 26, 1921, 1081, true), "GUI_1_17", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            // containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 258, 784, 1921, 1081, true), "GUI_1_6", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_15", new Rectangle(663, 576, 562, 478, 1921, 1081, true), "GUI_1_7", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 89, 1921, 1081, true), "GUI_1_9", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 557, 71, 1921, 1081, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addPlainButton("checkout", new Rectangle(1349, 892, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)));
+#if DEBUG
+            //keeping this here for debugging purposes.
+            containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(1, 0, 0, 0.5f), FadeIn, FadeOut, new GuiText(""));
+#endif
             containerGUI.display(container.player);
-            container.player.ChatMessage("sendUIworked"); // debug
-
         }
 
-
-        public void categories(virtualContainer container, List<string> categoriesList = null, int activeCategory=1)
+        public void categories(virtualContainer container, List<string> categoriesList = null, int activeCategory = 1)
         {
-            GuiContainer containerGUI = new GuiContainer(this, "categories");
+            GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
             categoriesList.Add("Category 1");
             categoriesList.Add("Category 2");
             categoriesList.Add("Category 3");
@@ -216,18 +336,19 @@ namespace Oxide.Plugins
             double widthEach = maximumWidth / categoriesList.Count;
             double initialX = 466;
 
-            
 
-            for (int i=1; i>categoriesList.Count+1;i++)
+
+            for (int i = 1; i > categoriesList.Count + 1; i++)
             {
-                
+
                 float xSpacing = (float)initialX * i;
-                if (i==activeCategory)
+                if (i == activeCategory)
                 {
-                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText($"{categoriesList[i-1]}", 10, new GuiColor(134, 190, 41, 0.8f)));
-                } else
+                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText($"{categoriesList[i - 1]}", 10, new GuiColor(134, 190, 41, 0.8f)));
+                }
+                else
                 {
-                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{categoriesList[i - 1]}", 10, new GuiColor(255,255,255, 0.8f)));
+                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText($"{categoriesList[i - 1]}", 10, new GuiColor(255, 255, 255, 0.8f)));
                 }
             }
             containerGUI.display(container.player);
@@ -236,7 +357,10 @@ namespace Oxide.Plugins
 
         public void closeUI(virtualContainer container)
         {
-
+#if DEBUG
+            container.player.ChatMessage("closing UI");
+#endif
+            GuiTracker.getGuiTracker(container.player).destroyGui(this, "background");
         }
 
         private void onItemInserted(virtualContainer container, Item item)
@@ -260,11 +384,29 @@ namespace Oxide.Plugins
                 PrintToChat(player, lang.GetMessage("noPermission", this, player.UserIDString));
                 return;
             }
-            virtualContainer container = virtualContainer.find(player);
-            if (container != null) Puts($"Skin-it: {player.displayName} already has a vContainer... this shouldn't happen");
-            container = player.gameObject.AddComponent<virtualContainer>();
-            container.init(player);
-            timer.Once(0.5f, () => container.send());
+
+            if (args.Length < 1)
+            {
+                virtualContainer container = virtualContainer.find(player);
+                if (container != null) Puts($"Skin-it: {player.displayName} already has a vContainer... this shouldn't happen");
+                container = player.gameObject.AddComponent<virtualContainer>();
+                container.init(player);
+                timer.Once(0.5f, () => container.send());
+            }
+            else
+            {
+                switch (args[0])
+                {
+                    case "add":
+                        List<ulong> IDs = new List<ulong>();
+                        for (int i = 1; i < args.Length; i++)
+                        {
+                            IDs.Add(ulong.Parse(args[i]));
+                        }
+                        addSkins(IDs);
+                        break;
+                }
+            }
         }
 
         private void testCommand(BasePlayer player, string command, string[] args)
@@ -273,6 +415,112 @@ namespace Oxide.Plugins
             player.ChatMessage("testing");
 #endif
 
+            List<ulong> IDs = new List<ulong>();
+            foreach (string arg in args)
+            {
+                IDs.Add(ulong.Parse(arg));
+            }
+
+            Action<List<skin>> callback = (skins) =>
+            {
+                int i = 0;
+                foreach (skin s in skins)
+                {
+                    Rectangle rect = new Rectangle(200 + (i * 110), 490, 100, 100, 1920, 1080, true);
+                    sendSkinImg(player, s.url, s.safename, rect);
+                    i++;
+                }
+            };
+            skinWebRequest(IDs, callback);
+        }
+        #endregion
+
+        #region helpers
+
+        private void addSkins(List<ulong> IDs, bool cfg = true)
+        {
+            Action<List<skin>> callback = (skins) =>
+            {
+                foreach (skin s in skins)
+                {
+                    if (!storedData.skins.Contains(s)) storedData.skins.Add(s);
+
+                    if (cfg)
+                    {
+                        if (!config.skins.ContainsKey(s.shortname))
+                        {
+                            config.skins.Add(s.shortname, new List<ulong>());
+                        }
+                        config.skins[s.shortname].Add(s.id);
+                    }
+                }
+                saveData();
+                if (cfg) SaveConfig();
+                OnSkinDataUpdated();
+            };
+            skinWebRequest(IDs, callback);
+        }
+
+        private void skinWebRequest(List<ulong> IDs, Action<List<skin>> callback)
+        {
+            if (IDs.Count < 1) return;
+
+            StringBuilder bodySB = new StringBuilder();
+            int i = 0;
+            foreach (ulong id in IDs)
+            {
+                bodySB.Append($"&publishedfileids%5B{i}%5D={id}");
+                i++;
+            }
+            string body = $"itemcount={IDs.Count}{bodySB}";
+            webrequest.Enqueue("https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/", body, (code, response) =>
+            {
+                if (code != 200 || response == null)
+                {
+                    Puts($"Coudn't get skin info!");
+                    return;
+                }
+                webResponse answer = JsonConvert.DeserializeObject<webResponse>(response);
+#if DEBUG
+                Puts($"getting skin info: {(answer?.response?.publishedfiledetails[0]?.title) ?? "null"}");
+#endif
+                if (answer?.response?.publishedfiledetails == null) return;
+                List<skin> output = new List<skin>();
+                foreach (publishedFile pf in answer.response.publishedfiledetails)
+                {
+
+                    string shortname = null;
+                    foreach (tag_ t in pf.tags)
+                    {
+                        if (shortnames.ContainsKey(t.tag))
+                        {
+                            shortname = shortnames[t.tag];
+                            break;
+                        }
+                    }
+                    if (shortname == null) continue;
+                    skin s = new skin { name = pf.title, id = ulong.Parse(pf.publishedfileid), url = pf.preview_url, shortname = shortname };
+                    output.Add(s);
+                }
+                callback(output);
+            }, this, RequestMethod.POST);
+        }
+
+        public void sendSkinImg(BasePlayer player, string url, string name, Rectangle rectangle, string parent = null)
+        {
+            player.ChatMessage($"sending img {name}");
+            Action callback = () =>
+            {
+                GuiContainer container = new GuiContainer(pluginInstance, $"skinimg_{name}", parent);
+                container.addRawImage($"img_{name}", rectangle, ImageLibrary.Call<string>("GetImage", name), "Hud");
+                container.display(player);
+            };
+            if (ImageLibrary.Call<bool>("HasImage", name, (ulong)0))
+            {
+                callback();
+            }
+            else ImageLibrary.Call<bool>("AddImage", url, name, (ulong)0, callback);
+
         }
 
         #endregion
@@ -280,10 +528,19 @@ namespace Oxide.Plugins
         #region data management
         private class StoredData
         {
-            public List<Vector3> positionList = new List<Vector3>();
+            public List<skin> skins = new List<skin>();
 
             public StoredData()
             {
+            }
+
+            public bool containsSkin(ulong id)
+            {
+                foreach (skin s in skins)
+                {
+                    if (s.id == id) return true;
+                }
+                return false;
             }
         }
 
@@ -318,8 +575,24 @@ namespace Oxide.Plugins
         private class ConfigData
         {
             [JsonProperty(PropertyName = "Allow Pos Command")]
-            public bool allowPosCom = true;
+            public Dictionary<string, List<ulong>> skins;
 
+        }
+
+        private ConfigData getDefaultConfig()
+        {
+            return new ConfigData
+            {
+                skins = new Dictionary<string, List<ulong>>
+                {
+                    {"rock", new List<ulong>
+                    {
+                        2061119719,
+                        2062928637,
+                        2030659199
+                    }}
+                }
+            };
         }
 
         protected override void LoadConfig()
@@ -341,7 +614,7 @@ namespace Oxide.Plugins
 
         protected override void SaveConfig() => Config.WriteObject(config);
 
-        protected override void LoadDefaultConfig() => config = new ConfigData();
+        protected override void LoadDefaultConfig() => config = getDefaultConfig();
         #endregion
 
         #region Localization
@@ -350,6 +623,91 @@ namespace Oxide.Plugins
             {"posOutput", "Player Coordinates: X:{0}, Y:{1}, Z:{2}"},
             {"noPermission", "You don't have permission to use this command!"}
         };
+        #endregion
+
+        #region shortname LUT
+
+        private static Dictionary<string, string> shortnames = new Dictionary<string, string>
+        {
+            {"Acoustic Guitar", "fun.guitar"},
+            {"AK47", "rifle.ak"},
+            {"Armored Door", "door.hinged.toptier"},
+            {"Balaclava", "mask.balaclava"},
+            {"Bandana", "mask.bandana"},
+            {"Beenie Hat", "hat.beenie"},
+            {"Bolt Rifle", "rifle.bolt"},
+            {"Bone Club", "bone.club"},
+            {"Bone Knife", "knife.bone"},
+            {"Boonie Hat", "hat.boonie"},
+            {"Bucket Helmet", "bucket.helmet"},
+            {"Burlap Headwrap", "burlap.headwrap"},
+            {"Burlap Pants", "burlap.headwrap"},
+            {"Burlap Shirt", "burlap.shirt"},
+            {"Burlap Shoes", "burlap.shoes"},
+            {"Cap", "hat.cap"},
+            {"Coffee Can Helmet", "coffeecan.helmet"},
+            {"Collared Shirt", "shirt.collared"},
+            {"Combat Knife", "knife.combat"},
+            {"Concrete Barricade", "barricade.concrete"},
+            {"Crossbow", "crossbow"},
+            {"Custom SMG", "smg.2"},
+            {"Deer Skull Mask", "deer.skull.mask"},
+            {"Double Barrel Shotgun", "shotgun.double"},
+            {"Eoka Pistol", "pistol.eoka"},
+            {"F1 Grenade", "grenade.f1"},
+            {"Hammer", "hammer"},
+            {"Hatchet", "hatchet"},
+            {"Hide Halterneck", "attire.hide.helterneck"},
+            {"Hide Pants", "attire.hide.pants"},
+            {"Hide Poncho", "attire.hide.poncho"},
+            {"Hide Shirt", "attire.hide.poncho"},
+            {"Hide Shoes", "attire.hide.poncho"},
+            {"Hide Skirt", "attire.hide.skirt"},
+            {"Hoodie", "hoodie"},
+            {"Large Wood Box", "box.wooden.large"},
+            {"Leather Gloves", "burlap.gloves"},
+            {"Long TShirt", "tshirt.long"},
+            {"Longsword", "longsword"},
+            {"LR300", "rifle.lr300"},
+            {"Metal Chest Plate", "metal.plate.torso"},
+            {"Metal Facemask", "metal.facemask"},
+            {"Miner Hat", "hat.miner"},
+            {"Mp5", "smg.mp5"},
+            {"Pants", "pants"},
+            {"Pick Axe", "pickaxe"},
+            {"Pump Shotgun", "shotgun.pump"},
+            {"Python", "pistol.python"},
+            {"Reactive Target", "target.reactive"},
+            {"Revolver", "pistol.revolver"},
+            {"Riot Helmet", "riot.helmet"},
+            {"Roadsign Pants", "roadsign.kilt"},
+            {"Roadsign Vest", "roadsign.jacket"},
+            {"Rock", "rock"},
+            {"Rocket Launcher", "rocket.launcher"},
+            {"Salvaged Hammer", "hammer.salvaged"},
+            {"Salvaged Icepick", "icepick.salvaged"},
+            {"Sandbag Barricade", "barricade.sandbags"},
+            {"Satchel Charge", "explosive.satchel"},
+            {"Semi-Automatic Pistol", "pistol.semiauto"},
+            {"Semi-Automatic Rifle", "rifle.semiauto"},
+            {"Sheet Metal Door", "door.hinged.metal"},
+            {"Shorts", "pants.shorts"},
+            {"Sleeping Bag", "sleepingbag"},
+            {"Snow Jacket", "jacket.snow"},
+            {"Stone Hatchet", "stonehatchet"},
+            {"Stone Pick Axe", "stone.pickaxe"},
+            {"Sword", "salvaged.sword"},
+            {"Tank Top", "shirt.tanktop"},
+            {"Thompson", "smg.thompson"},
+            {"TShirt", "tshirt"},
+            {"Vagabond Jacket", "jacket"},
+            {"Water Purifier", "water.purifier"},
+            {"Waterpipe Shotgun", "shotgun.waterpipe"},
+            {"Wood Storage Box", "box.wooden"},
+            {"Wooden Door", "door.hinged.wood"},
+            {"Work Boots", "shoes.boots"}
+        };
+
         #endregion
     }
 }
