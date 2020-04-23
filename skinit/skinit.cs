@@ -2,6 +2,7 @@
 
 #define DEBUG
 //#define DEBUG2
+using Facepunch.Extend;
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
@@ -373,40 +374,6 @@ namespace Oxide.Plugins
             containerGUI.display(container.player);
         }
 
-        public void categories(virtualContainer container, List<string> categoriesList = null, int activeCategory = 1)
-        {
-            GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
-            categoriesList.Add("Category 1");
-            categoriesList.Add("Category 2");
-            categoriesList.Add("Category 3");
-            categoriesList.Add("Category 4");
-            categoriesList.Add("Category 5");
-            categoriesList.Add("Category 6");
-            categoriesList.Add("Category 7");
-            categoriesList.Add("Category 8");
-
-            double maximumWidth = 1392;
-            double widthEach = maximumWidth / categoriesList.Count;
-            double initialX = 466;
-
-
-
-            for (int i = 1; i > categoriesList.Count + 1; i++)
-            {
-
-                float xSpacing = (float)initialX * i;
-                if (i == activeCategory)
-                {
-                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText($"{categoriesList[i - 1]}", 10, new GuiColor(134, 190, 41, 0.8f)));
-                }
-                else
-                {
-                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText($"{categoriesList[i - 1]}", 10, new GuiColor(255, 255, 255, 0.8f)));
-                }
-            }
-            containerGUI.display(container.player);
-        }
-
         public void categories(BasePlayer player, List<string> categoriesList, int activeCategory = 0)
         {
             double OriginY = 500;
@@ -499,7 +466,7 @@ namespace Oxide.Plugins
 #if DEBUG
             player.ChatMessage("testing");
 #endif
-            applySkin(player, player.GetActiveItem(), ulong.Parse(args[0]));
+            List<string> testList = new List<string> { "entry1", "entry2", "entry3" };
         }
         #endregion
 
@@ -534,6 +501,17 @@ namespace Oxide.Plugins
 
             item.Remove();
             player.GiveItem(newItem);
+        }
+
+        private List<skin> getSkins(string shortname, string category = null)
+        {
+            List<skin> output = new List<skin>();
+            foreach(skin s in storedData.skins)
+            {
+                if (category == null && s.shortname == shortname) output.Add(s);
+                else if (s.category == category && s.shortname == shortname) output.Add(s);
+            }
+            return output;
         }
 
         private void addSkins(List<ulong> IDs, string category, bool cfg = true)
