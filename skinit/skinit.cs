@@ -2,7 +2,6 @@
 
 #define DEBUG
 //#define DEBUG2
-using Facepunch.Extend;
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
@@ -80,7 +79,7 @@ namespace Oxide.Plugins
                 {
                     entityOwner = player,
                     playerOwner = player,
-                    capacity = slot+1,
+                    capacity = slot + 1,
                     isServer = true,
                     allowedContents = ItemContainer.ContentsType.Generic
                 };
@@ -240,23 +239,26 @@ namespace Oxide.Plugins
             //commands
             cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
-            guiCreator.registerImage(this, "GUI_1_1", "https://i.ibb.co/PYZ5CTh/Skin-Mockup-01.jpg");
-            guiCreator.registerImage(this, "GUI_1_2", "https://i.ibb.co/MfB43Xf/Skin-Mockup-02.jpg");
-            guiCreator.registerImage(this, "GUI_1_3", "https://i.ibb.co/JdMRrHC/Skin-Mockup-03.jpg");
-            guiCreator.registerImage(this, "GUI_1_4", "https://i.ibb.co/qrG3wVp/Skin-Mockup-04.jpg");
-            guiCreator.registerImage(this, "GUI_1_5", "https://i.ibb.co/bXFfyKq/Skin-Mockup-05.jpg");
-            guiCreator.registerImage(this, "GUI_1_8", "https://i.ibb.co/HgnsXgQ/Skin-Mockup-08.jpg");
-            guiCreator.registerImage(this, "GUI_1_10", "https://i.ibb.co/Wvm8p8Y/Skin-Mockup-10.jpg");
-            guiCreator.registerImage(this, "GUI_1_11", "https://i.ibb.co/stdb37p/Skin-Mockup-11.jpg");
-            guiCreator.registerImage(this, "GUI_1_12", "https://i.ibb.co/hCmRWbd/Skin-Mockup-12.jpg");
-            guiCreator.registerImage(this, "GUI_1_13", "https://i.ibb.co/bsPqctf/Skin-Mockup-13.jpg");
-            guiCreator.registerImage(this, "GUI_1_15", "https://i.ibb.co/sRYQxFG/Skin-Mockup-15.jpg");
-            guiCreator.registerImage(this, "GUI_1_16", "https://i.ibb.co/0qbzczC/Skin-Mockup-16.jpg");
-            guiCreator.registerImage(this, "GUI_1_17", "https://i.ibb.co/QJRRvVW/Skin-Mockup-17.jpg");
-            // guiCreator.registerImage(this, "GUI_1_6", "https://i.ibb.co/MGMGxXB/Skin-Mockup-06.jpg");
-            guiCreator.registerImage(this, "GUI_1_7", "https://i.ibb.co/xL0q2NH/Skin-Mockup-07.jpg");
-            guiCreator.registerImage(this, "GUI_1_9", "https://i.ibb.co/8g8wKyN/Skin-Mockup-09.jpg");
-            guiCreator.registerImage(this, "GUI_1_14", "https://i.ibb.co/BzKWhqx/Skin-Mockup-14.jpg");
+            guiCreator.registerImage(this, "GUI_1_1", "https://i.imgur.com/jqRb4f5.jpg");
+            guiCreator.registerImage(this, "GUI_1_2", "https://i.imgur.com/A1Pcc45.jpg");
+            guiCreator.registerImage(this, "GUI_1_3", "https://i.imgur.com/rIzu5vi.jpg");
+            guiCreator.registerImage(this, "GUI_1_4", "https://i.imgur.com/WjF3WwR.jpg");
+            guiCreator.registerImage(this, "GUI_1_5", "https://i.imgur.com/SHpMWVQ.jpg");
+            guiCreator.registerImage(this, "GUI_1_8", "https://i.imgur.com/36EBskB.jpg");
+            guiCreator.registerImage(this, "GUI_1_10", "https://i.imgur.com/x53Yq2f.jpg");
+            guiCreator.registerImage(this, "GUI_1_11", "https://i.imgur.com/Cy961Zc.jpg");
+            guiCreator.registerImage(this, "GUI_1_12", "https://i.imgur.com/wdEg6lD.jpg");
+            guiCreator.registerImage(this, "GUI_1_13", "https://i.imgur.com/UFSftQD.jpg");
+            guiCreator.registerImage(this, "GUI_1_15", "https://i.imgur.com/G7B5NTh.jpg");
+            guiCreator.registerImage(this, "GUI_1_16", "https://i.imgur.com/CLfx3BO.jpg");
+            guiCreator.registerImage(this, "GUI_1_17", "https://i.imgur.com/q0sECdd.jpg");
+            // guiCreator.registerImage(this, "GUI_1_6", "https://i.imgur.com/jXNQyWB.jpg");
+            guiCreator.registerImage(this, "GUI_1_7", "https://i.imgur.com/IfsZhBv.jpg");
+            guiCreator.registerImage(this, "GUI_1_9", "https://i.imgur.com/gA0yP5Z.jpg");
+            guiCreator.registerImage(this, "GUI_1_14", "https://i.imgur.com/yHLqrQc.jpg");
+            guiCreator.registerImage(this, "GUI_1_Fill_1", "https://i.imgur.com/F24t7V8.jpg");
+            guiCreator.registerImage(this, "GUI_1_Fill_2", "https://i.imgur.com/Fae4VRR.jpg");
+            guiCreator.registerImage(this, "Text_1", "https://i.imgur.com/mirJ3cR.png");
 
             //lang
             lang.RegisterMessages(messages, this);
@@ -305,7 +307,7 @@ namespace Oxide.Plugins
         ItemContainer.CanAcceptResult? CanAcceptItem(ItemContainer container, Item item, int targetPos)
         {
             BasePlayer player = container?.GetOwnerPlayer();
-            if(!player) return null;
+            if (!player) return null;
 #if DEBUG
             player.ChatMessage($"CanAcceptItem: container:{container?.uid}, item:{item?.amount} x {item?.info?.displayName?.english}, targetPos:{targetPos}");
 #endif
@@ -333,28 +335,75 @@ namespace Oxide.Plugins
             container.player.ChatMessage("sending UI");
 #endif
             GuiContainer containerGUI = new GuiContainer(this, "background");
-            containerGUI.addImage("GUI_1_1", new Rectangle(0, 0, 393, 30, 1920, 1080, true), "GUI_1_1", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_2", new Rectangle(393, 0, 265, 837, 1920, 1080, true), "GUI_1_2", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_3", new Rectangle(658, 0, 570, 573, 1920, 1080, true), "GUI_1_3", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_4", new Rectangle(1228, 0, 692, 643, 1920, 1080, true), "GUI_1_4", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_5", new Rectangle(0, 30, 134, 807, 1920, 1080, true), "GUI_1_5", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_6", new Rectangle(1228, 643, 130, 88, 1920, 1080, true), "GUI_1_8", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_7", new Rectangle(1439, 643, 481, 88, 1920, 1080, true), "GUI_1_10", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_8", new Rectangle(1228, 731, 692, 326, 1920, 1080, true), "GUI_1_11", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_9", new Rectangle(134, 814, 259, 23, 1920, 1080, true), "GUI_1_12", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_10", new Rectangle(0, 837, 74, 243, 1920, 1080, true), "GUI_1_13", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_11", new Rectangle(637, 837, 21, 71, 1920, 1080, true), "GUI_1_15", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_12", new Rectangle(74, 908, 584, 172, 1920, 1080, true), "GUI_1_16", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_13", new Rectangle(658, 1057, 1262, 23, 1920, 1080, true), "GUI_1_17", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            // containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 259, 784, 1920, 1080, true), "GUI_1_6", GuiContainer.Layer.under, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_15", new Rectangle(658, 573, 570, 484, 1920, 1080, true), "GUI_1_7", GuiContainer.Layer.under, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 88, 1920, 1080, true), "GUI_1_9", GuiContainer.Layer.under, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 563, 71, 1920, 1080, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
-            containerGUI.addPlainButton("checkout", new Rectangle(1349, 892, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)));
+            int cost = 35;
+            int balance = 1550;
+            string skinPermissions = "attire, deployables, tools, weapons";
+            skinPermissions = skinPermissions.ToUpper();
+            containerGUI.addImage("GUI_1_1", new Rectangle(0, 0, 392, 30, 1921, 1080, true), "GUI_1_1", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_2", new Rectangle(392, 0, 271, 837, 1921, 1081, true), "GUI_1_2", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_3", new Rectangle(663, 0, 562, 576, 1921, 1081, true), "GUI_1_3", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_4", new Rectangle(1225, 0, 695, 643, 1921, 1081, true), "GUI_1_4", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_5", new Rectangle(0, 30, 134, 807, 1921, 1081, true), "GUI_1_5", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_6", new Rectangle(1225, 643, 133, 89, 1921, 1081, true), "GUI_1_8", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_7", new Rectangle(1439, 643, 481, 89, 1921, 1081, true), "GUI_1_10", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_8", new Rectangle(1225, 732, 695, 322, 1921, 1081, true), "GUI_1_11", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_9", new Rectangle(134, 814, 258, 23, 1921, 1081, true), "GUI_1_12", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_10", new Rectangle(0, 837, 74, 243, 1921, 1081, true), "GUI_1_13", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_11", new Rectangle(631, 837, 32, 71, 1921, 1081, true), "GUI_1_15", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_12", new Rectangle(74, 908, 589, 172, 1921, 1081, true), "GUI_1_16", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_13", new Rectangle(663, 1054, 1257, 26, 1921, 1081, true), "GUI_1_17", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_Fill_1", new Rectangle(1204, 146, 39, 430, 1921, 1081, true), "GUI_1_Fill_1", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_Fill_2", new Rectangle(0, 0, 134, 92, 1921, 1081, true), "GUI_1_Fill_2", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            // containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 258, 784, 1921, 1081, true), "GUI_1_6", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_15", new Rectangle(663, 576, 562, 478, 1921, 1081, true), "GUI_1_7", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 89, 1921, 1081, true), "GUI_1_9", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 557, 71, 1921, 1081, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("Text_1", new Rectangle(1334, 925, 460, 121, 1920, 1080, true), "Text_1", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
+            containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {cost}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {balance}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 20, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
+
+            containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)));
 #if DEBUG
             //keeping this here for debugging purposes.
-            containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(1, 0, 0, 0.5f), FadeIn, FadeOut, new GuiText(""));
+            // containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(1, 0, 0, 0.5f), FadeIn, FadeOut, new GuiText(""));
 #endif
+            containerGUI.display(container.player);
+        }
+
+        public void categories(virtualContainer container, List<string> categoriesList = null, int activeCategory = 1)
+        {
+            GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
+            categoriesList.Add("Category 1");
+            categoriesList.Add("Category 2");
+            categoriesList.Add("Category 3");
+            categoriesList.Add("Category 4");
+            categoriesList.Add("Category 5");
+            categoriesList.Add("Category 6");
+            categoriesList.Add("Category 7");
+            categoriesList.Add("Category 8");
+
+            double maximumWidth = 1392;
+            double widthEach = maximumWidth / categoriesList.Count;
+            double initialX = 466;
+
+
+
+            for (int i = 1; i > categoriesList.Count + 1; i++)
+            {
+
+                float xSpacing = (float)initialX * i;
+                if (i == activeCategory)
+                {
+                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText($"{categoriesList[i - 1]}", 10, new GuiColor(134, 190, 41, 0.8f)));
+                }
+                else
+                {
+                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText($"{categoriesList[i - 1]}", 10, new GuiColor(255, 255, 255, 0.8f)));
+                }
+            }
             containerGUI.display(container.player);
         }
 
