@@ -202,23 +202,23 @@ namespace Oxide.Plugins
             //commands
             cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
-            guiCreator.registerImage(this, "GUI_1_1", "https://i.ibb.co/V3VRWg7/Skin-Mockup-01.jpg");
-            guiCreator.registerImage(this, "GUI_1_2", "https://i.ibb.co/nf93ptY/Skin-Mockup-02.jpg");
-            guiCreator.registerImage(this, "GUI_1_3", "https://i.ibb.co/CWkFW7f/Skin-Mockup-03.jpg");
-            guiCreator.registerImage(this, "GUI_1_4", "https://i.ibb.co/54DDKNv/Skin-Mockup-04.jpg");
-            guiCreator.registerImage(this, "GUI_1_5", "https://i.ibb.co/3SsxSKD/Skin-Mockup-05.jpg");
-            guiCreator.registerImage(this, "GUI_1_8", "https://i.ibb.co/JvHNJCb/Skin-Mockup-08.jpg");
-            guiCreator.registerImage(this, "GUI_1_10", "https://i.ibb.co/wJ4f7jD/Skin-Mockup-10.jpg");
-            guiCreator.registerImage(this, "GUI_1_11", "https://i.ibb.co/mvj4s5h/Skin-Mockup-11.jpg");
-            guiCreator.registerImage(this, "GUI_1_12", "https://i.ibb.co/3FbQQsR/Skin-Mockup-12.jpg");
-            guiCreator.registerImage(this, "GUI_1_13", "https://i.ibb.co/Z2Vr4k1/Skin-Mockup-13.jpg");
-            guiCreator.registerImage(this, "GUI_1_15", "https://i.ibb.co/FVcSSgm/Skin-Mockup-15.jpg");
-            guiCreator.registerImage(this, "GUI_1_16", "https://i.ibb.co/6b2g3Sx/Skin-Mockup-16.jpg");
-            guiCreator.registerImage(this, "GUI_1_17", "https://i.ibb.co/1973FmT/Skin-Mockup-17.jpg");
-            guiCreator.registerImage(this, "GUI_1_6", "https://i.ibb.co/MGMGxXB/Skin-Mockup-06.jpg");
-            guiCreator.registerImage(this, "GUI_1_7", "https://i.ibb.co/wBCDVrR/Skin-Mockup-07.jpg");
-            guiCreator.registerImage(this, "GUI_1_9", "https://i.ibb.co/R27hRD0/Skin-Mockup-09.jpg");
-            guiCreator.registerImage(this, "GUI_1_14", "https://i.ibb.co/6Zmgrxj/Skin-Mockup-14.jpg");
+            guiCreator.registerImage(this, "GUI_1_1", "https://i.ibb.co/PYZ5CTh/Skin-Mockup-01.jpg");
+            guiCreator.registerImage(this, "GUI_1_2", "https://i.ibb.co/MfB43Xf/Skin-Mockup-02.jpg");
+            guiCreator.registerImage(this, "GUI_1_3", "https://i.ibb.co/JdMRrHC/Skin-Mockup-03.jpg");
+            guiCreator.registerImage(this, "GUI_1_4", "https://i.ibb.co/qrG3wVp/Skin-Mockup-04.jpg");
+            guiCreator.registerImage(this, "GUI_1_5", "https://i.ibb.co/bXFfyKq/Skin-Mockup-05.jpg");
+            guiCreator.registerImage(this, "GUI_1_8", "https://i.ibb.co/HgnsXgQ/Skin-Mockup-08.jpg");
+            guiCreator.registerImage(this, "GUI_1_10", "https://i.ibb.co/Wvm8p8Y/Skin-Mockup-10.jpg");
+            guiCreator.registerImage(this, "GUI_1_11", "https://i.ibb.co/stdb37p/Skin-Mockup-11.jpg");
+            guiCreator.registerImage(this, "GUI_1_12", "https://i.ibb.co/hCmRWbd/Skin-Mockup-12.jpg");
+            guiCreator.registerImage(this, "GUI_1_13", "https://i.ibb.co/bsPqctf/Skin-Mockup-13.jpg");
+            guiCreator.registerImage(this, "GUI_1_15", "https://i.ibb.co/sRYQxFG/Skin-Mockup-15.jpg");
+            guiCreator.registerImage(this, "GUI_1_16", "https://i.ibb.co/0qbzczC/Skin-Mockup-16.jpg");
+            guiCreator.registerImage(this, "GUI_1_17", "https://i.ibb.co/QJRRvVW/Skin-Mockup-17.jpg");
+            // guiCreator.registerImage(this, "GUI_1_6", "https://i.ibb.co/MGMGxXB/Skin-Mockup-06.jpg");
+            guiCreator.registerImage(this, "GUI_1_7", "https://i.ibb.co/xL0q2NH/Skin-Mockup-07.jpg");
+            guiCreator.registerImage(this, "GUI_1_9", "https://i.ibb.co/8g8wKyN/Skin-Mockup-09.jpg");
+            guiCreator.registerImage(this, "GUI_1_14", "https://i.ibb.co/BzKWhqx/Skin-Mockup-14.jpg");
 
             //lang
             lang.RegisterMessages(messages, this);
@@ -308,15 +308,48 @@ namespace Oxide.Plugins
             containerGUI.addImage("GUI_1_11", new Rectangle(637, 837, 21, 71, 1920, 1080, true), "GUI_1_15", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_12", new Rectangle(74, 908, 584, 172, 1920, 1080, true), "GUI_1_16", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_13", new Rectangle(658, 1057, 1262, 23, 1920, 1080, true), "GUI_1_17", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 259, 784, 1920, 1080, true), "GUI_1_6", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            // containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 259, 784, 1920, 1080, true), "GUI_1_6", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_15", new Rectangle(658, 573, 570, 484, 1920, 1080, true), "GUI_1_7", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 88, 1920, 1080, true), "GUI_1_9", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 563, 71, 1920, 1080, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addPlainButton("checkout", new Rectangle(1349, 892, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)));
 #if DEBUG
             //keeping this here for debugging purposes.
             containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(1, 0, 0, 0.5f), FadeIn, FadeOut, new GuiText(""));
 #endif
             containerGUI.display(container.player);
+        }
+
+        public void categories(BasePlayer player, List<string> categoriesList, int activeCategory = 0)
+        {
+            double OriginY = 500;
+            double Height = 45;
+            double maximumWidth = 1920;
+            double widthEach = maximumWidth / categoriesList.Count;
+            double OriginX = 0;
+
+            GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
+            int i = 0;
+            foreach(string s in categoriesList)
+            {
+                double xSpacing = OriginX + (widthEach * i);
+                int index = i;
+                Action<BasePlayer, string[]> callback = (bPlayer, input) =>
+                {
+                    categories(bPlayer, categoriesList, index);
+                };
+                if (i == activeCategory)
+                {
+                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(s, 10, new GuiColor(134, 190, 41, 0.8f)), callback);
+                }
+                else
+                {
+                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(s, 10, new GuiColor(255, 255, 255, 0.8f)), callback);
+                }
+                i++;
+            }
+            containerGUI.display(player);
+
         }
 
         public void closeUI(virtualContainer container)
@@ -378,25 +411,9 @@ namespace Oxide.Plugins
 #if DEBUG
             player.ChatMessage("testing");
 #endif
-
-            List<ulong> IDs = new List<ulong>();
-            foreach(string arg in args)
-            {
-                IDs.Add(ulong.Parse(arg));
-            }
-
-            Action<List<skin>> callback = (skins) =>
-            {
-                int i = 0;
-                foreach(skin s in skins)
-                {
-                    Rectangle rect = new Rectangle(200+(i*110), 490, 100, 100, 1920, 1080, true);
-                    sendSkinImg(player, s.url, s.safename, rect);
-                    i++;
-                }
-            };
-            skinWebRequest(IDs, callback);
-        }
+            List<string> categoriesList = new List<string> { "category 1", "category 2", "category 3", "category 4", "category 5", "category 6", "category 7", "category 8", };
+            categories(player,categoriesList );
+        } 
         #endregion
 
         #region helpers
