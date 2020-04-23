@@ -10,7 +10,6 @@ using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
-using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -46,13 +45,19 @@ namespace Oxide.Plugins
 
         #region classes
 
+        [JsonObject(MemberSerialization.OptIn)]
         public class skin
         {
+            [JsonProperty(PropertyName = "Name")]
             public string name;
             public string safename => Regex.Replace(name, " ", "_");
+            [JsonProperty(PropertyName = "Category")]
             public string category;
+            [JsonProperty(PropertyName = "Item Shortname")]
             public string shortname;
+            [JsonProperty(PropertyName = "Skin ID")]
             public ulong id;
+            [JsonProperty(PropertyName = "Preview URL")]
             public string url;
         }
 
@@ -197,6 +202,31 @@ namespace Oxide.Plugins
                     addSkins(toBeAdded, category, false);
                 }
             }
+
+            List<skin> toBeRemoved = new List<skin>();
+            foreach(skin s in storedData.skins)
+            {
+                if(!config.skins.ContainsKey(s.shortname))
+                {
+                    toBeRemoved.Add(s);
+                    continue;
+                }
+                if(!config.skins[s.shortname].ContainsKey(s.category))
+                {
+                    toBeRemoved.Add(s);
+                    continue;
+                }
+                if(!config.skins[s.shortname][s.category].Contains(s.id))
+                {
+                    toBeRemoved.Add(s);
+                    continue;
+                }
+            }
+            foreach(skin s in toBeRemoved)
+            {
+                storedData.skins.Remove(s);
+            }
+            saveData();
             
 
             //references
@@ -420,16 +450,41 @@ namespace Oxide.Plugins
 #if DEBUG
             player.ChatMessage("testing");
 #endif
-            applySkin(player.GetActiveItem(), ulong.Parse(args[0]));
+            applySkin(player, player.GetActiveItem(), ulong.Parse(args[0]));
         }
         #endregion
 
         #region helpers
 
-        public void applySkin(Item item, ulong skinID)
+        public void applySkin(BasePlayer player, Item item, ulong skinID)
         {
-            item.skin = skinID;
-            item.MarkDirty();
+            Item newItem = ItemManager.Create(item.info, item.amount, skinID);
+            List<Item> contentBackup = new List<Item>();
+            foreach(Item i in item.contents.itemList)
+            {
+                contentBackup.Add(i);
+            }
+            foreach(Item i in contentBackup)
+            {
+                newItem.contents.AddItem(i.info, i.amount);
+            }
+
+            if (item.hasCondition)
+            {
+                newItem._maxCondition = item._maxCondition;
+                newItem._condition = item._condition;
+            }
+
+            BaseProjectile oldGun = item.GetHeldEntity() as BaseProjectile;
+            BaseProjectile newGun = newItem.GetHeldEntity() as BaseProjectile;
+            if (newGun != null && oldGun != null)
+            {
+                newGun.primaryMagazine.ammoType = oldGun.primaryMagazine.ammoType;
+                newGun.primaryMagazine.contents = oldGun.primaryMagazine.contents;
+            }
+
+            item.Remove();
+            player.GiveItem(newItem);
         }
 
         private void addSkins(List<ulong> IDs, string category, bool cfg = true)
