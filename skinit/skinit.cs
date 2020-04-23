@@ -46,7 +46,7 @@ namespace Oxide.Plugins
         #region classes
 
         [JsonObject(MemberSerialization.OptIn)]
-        public class skin
+        public class Skin
         {
             [JsonProperty(PropertyName = "Name")]
             public string name;
@@ -203,8 +203,8 @@ namespace Oxide.Plugins
                 }
             }
 
-            List<skin> toBeRemoved = new List<skin>();
-            foreach(skin s in storedData.skins)
+            List<Skin> toBeRemoved = new List<Skin>();
+            foreach(Skin s in storedData.skins)
             {
                 if(!config.skins.ContainsKey(s.shortname))
                 {
@@ -222,7 +222,7 @@ namespace Oxide.Plugins
                     continue;
                 }
             }
-            foreach(skin s in toBeRemoved)
+            foreach(Skin s in toBeRemoved)
             {
                 storedData.skins.Remove(s);
             }
@@ -240,6 +240,8 @@ namespace Oxide.Plugins
             //commands
             cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
+
+            //images
             guiCreator.registerImage(this, "GUI_1_1", "https://i.imgur.com/jqRb4f5.jpg");
             guiCreator.registerImage(this, "GUI_1_2", "https://i.imgur.com/A1Pcc45.jpg");
             guiCreator.registerImage(this, "GUI_1_3", "https://i.imgur.com/rIzu5vi.jpg");
@@ -270,12 +272,9 @@ namespace Oxide.Plugins
 
         private void OnSkinDataUpdated()
         {
-            foreach(skin s in storedData.skins)
+            foreach(Skin s in storedData.skins)
             {
-                if(!ImageLibrary.Call<bool>("HasImage", s.safename, (ulong)0))
-                {
-                    ImageLibrary.Call<bool>("AddImage", s.url, s.safename, (ulong)0);
-                }
+                guiCreator.registerImage(this, s.safename, s.url);
             }
         }
 
@@ -309,12 +308,14 @@ namespace Oxide.Plugins
         {
             BasePlayer player = container?.GetOwnerPlayer();
             if (!player) return null;
-#if DEBUG
-            player.ChatMessage($"CanAcceptItem: container:{container?.uid}, item:{item?.amount} x {item?.info?.displayName?.english}, targetPos:{targetPos}");
-#endif
             virtualContainer vContainer = virtualContainer.find(player);
             if (vContainer == null) return null;
-            if (vContainer.uid != container.uid) return null;
+            if(item?.parent?.uid == vContainer.uid)
+            {
+                onItemRemoved(vContainer, item);
+                return null;
+            }
+            if (vContainer.uid != container?.uid) return null;
             if (targetPos != slot) return ItemContainer.CanAcceptResult.CannotAccept;
             vContainer.item = item;
             onItemInserted(vContainer, item);
@@ -359,14 +360,14 @@ namespace Oxide.Plugins
             containerGUI.addImage("GUI_1_15", new Rectangle(663, 576, 562, 478, 1921, 1081, true), "GUI_1_7", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 89, 1921, 1081, true), "GUI_1_9", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 557, 71, 1921, 1081, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
-            containerGUI.addImage("Text_1", new Rectangle(1334, 925, 460, 121, 1920, 1080, true), "Text_1", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
-            containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {cost}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {balance}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 20, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
+            containerGUI.addImage("Text_1", new Rectangle(1334, 925, 460, 121, 1920, 1080, true), "Text_1", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {cost}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {balance}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 20, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
 
-            containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)));
+            containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)));
 #if DEBUG
             //keeping this here for debugging purposes.
             // containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(1, 0, 0, 0.5f), FadeIn, FadeOut, new GuiText(""));
@@ -419,6 +420,33 @@ namespace Oxide.Plugins
 #if DEBUG
             PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
+            List<Skin> availableSkins = getSkins(item.info.shortname);
+
+            GuiContainer guiContainer = new GuiContainer(this, "skinsTest", "background");
+            int i = 0;
+            foreach(Skin s in availableSkins)
+            {
+                Rectangle pos = new Rectangle(534 + (i * 110), 221, 100, 100, 1920, 1080, true);
+                guiContainer.addImage($"img_{s.safename}", pos, s.safename, GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+                Skin selected = s;
+                Action<BasePlayer, string[]> callback = (bPlayer, input) =>
+                {
+                    bPlayer.ChatMessage($"skinning {selected.name}");
+                    Item newItem = applySkin(container, item, selected.id);
+                    onItemInserted(container, newItem);
+                };
+                guiContainer.addPlainButton($"btn_{s.safename}", new Rectangle(), null, FadeIn, FadeOut, callback: callback, parent: $"img_{s.safename}");
+                i++;
+            }
+            guiContainer.display(container.player);
+        }
+
+        private void onItemRemoved(virtualContainer container, Item item)
+        {
+#if DEBUG
+            PrintToChat($"OnItemRemoved: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
+#endif
+            GuiTracker.getGuiTracker(container.player).destroyGui(this, "skinsTest");
         }
 
         #endregion
@@ -467,22 +495,26 @@ namespace Oxide.Plugins
             player.ChatMessage("testing");
 #endif
             List<string> testList = new List<string> { "entry1", "entry2", "entry3" };
+            categories(player, testList);
         }
         #endregion
 
         #region helpers
 
-        public void applySkin(BasePlayer player, Item item, ulong skinID)
+        public Item applySkin( virtualContainer container, Item item, ulong skinID)
         {
             Item newItem = ItemManager.Create(item.info, item.amount, skinID);
             List<Item> contentBackup = new List<Item>();
-            foreach(Item i in item.contents.itemList)
+            if(item.contents != null)
             {
-                contentBackup.Add(i);
-            }
-            foreach(Item i in contentBackup)
-            {
-                newItem.contents.AddItem(i.info, i.amount);
+                foreach (Item i in item.contents.itemList)
+                {
+                    contentBackup.Add(i);
+                }
+                foreach (Item i in contentBackup)
+                {
+                    newItem.contents.AddItem(i.info, i.amount);
+                }
             }
 
             if (item.hasCondition)
@@ -498,15 +530,19 @@ namespace Oxide.Plugins
                 newGun.primaryMagazine.ammoType = oldGun.primaryMagazine.ammoType;
                 newGun.primaryMagazine.contents = oldGun.primaryMagazine.contents;
             }
-
             item.Remove();
-            player.GiveItem(newItem);
+            newItem.position = slot;
+            newItem.parent = container.itemContainer;
+
+            container.itemContainer.itemList.Add(newItem);
+            newItem.MarkDirty();
+            return newItem;
         }
 
-        private List<skin> getSkins(string shortname, string category = null)
+        private List<Skin> getSkins(string shortname, string category = null)
         {
-            List<skin> output = new List<skin>();
-            foreach(skin s in storedData.skins)
+            List<Skin> output = new List<Skin>();
+            foreach(Skin s in storedData.skins)
             {
                 if (category == null && s.shortname == shortname) output.Add(s);
                 else if (s.category == category && s.shortname == shortname) output.Add(s);
@@ -516,9 +552,9 @@ namespace Oxide.Plugins
 
         private void addSkins(List<ulong> IDs, string category, bool cfg = true)
         {
-            Action<List<skin>> callback = (skins) =>
+            Action<List<Skin>> callback = (skins) =>
             {
-                foreach(skin s in skins)
+                foreach(Skin s in skins)
                 {
                     s.category = category;
                     if (!storedData.skins.Contains(s)) storedData.skins.Add(s);
@@ -543,7 +579,7 @@ namespace Oxide.Plugins
             skinWebRequest(IDs, callback);
         }
 
-        private void skinWebRequest(List<ulong> IDs, Action<List<skin>> callback)
+        private void skinWebRequest(List<ulong> IDs, Action<List<Skin>> callback)
         {
             if (IDs.Count < 1) return;
 
@@ -567,7 +603,7 @@ namespace Oxide.Plugins
                 Puts($"getting skin info: {(answer?.response?.publishedfiledetails[0]?.title) ?? "null"}");
 #endif
                 if (answer?.response?.publishedfiledetails == null) return;
-                List<skin> output = new List<skin>();
+                List<Skin> output = new List<Skin>();
                 foreach(publishedFile pf in answer.response.publishedfiledetails)
                 {
 
@@ -581,7 +617,7 @@ namespace Oxide.Plugins
                         }
                     }
                     if (shortname == null) continue;
-                    skin s = new skin { name = pf.title, id = ulong.Parse(pf.publishedfileid), url = pf.preview_url , shortname = shortname};
+                    Skin s = new Skin { name = pf.title, id = ulong.Parse(pf.publishedfileid), url = pf.preview_url , shortname = shortname};
                     output.Add(s);
                 }
                 callback(output);
@@ -610,7 +646,7 @@ namespace Oxide.Plugins
         #region data management
         private class StoredData
         {
-            public List<skin> skins = new List<skin>();
+            public List<Skin> skins = new List<Skin>();
 
             public StoredData()
             {
@@ -618,7 +654,7 @@ namespace Oxide.Plugins
 
             public bool containsSkin(ulong id)
             {
-                foreach(skin s in skins)
+                foreach(Skin s in skins)
                 {
                     if (s.id == id) return true;
                 }
