@@ -84,10 +84,10 @@ namespace Oxide.Plugins
 
         public class Rectangle:CuiRectTransformComponent
         {
-            public float anchorMinX;
-            public float anchorMinY;
-            public float anchorMaxX;
-            public float anchorMaxY;
+            public double anchorMinX;
+            public double anchorMinY;
+            public double anchorMaxX;
+            public double anchorMaxY;
             //public string anchorMin => $"{anchorMinX} {anchorMinY}";
             //public string anchorMax => $"{anchorMaxX} {anchorMaxY}";
 
@@ -97,9 +97,9 @@ namespace Oxide.Plugins
                 AnchorMax = "1 1";
             }
 
-            public Rectangle(float X, float Y, float W, float H, int resX = 1, int resY = 1, bool topLeftOrigin = false)
+            public Rectangle(double X, double Y, double W, double H, double resX = 1, double resY = 1, bool topLeftOrigin = false)
             {
-                float newY = topLeftOrigin ? resY - Y - H : Y;
+                double newY = topLeftOrigin ? resY - Y - H : Y;
 
                 anchorMinX = X / resX;
                 anchorMinY = newY / resY;

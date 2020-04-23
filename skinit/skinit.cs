@@ -1,6 +1,7 @@
 ﻿// Requires: GUICreator
 
 #define DEBUG
+//#define DEBUG2
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
@@ -63,6 +64,9 @@ namespace Oxide.Plugins
 
             public void init(BasePlayer player)
             {
+#if DEBUG2
+                player.ChatMessage("initialized virtual container");
+#endif
                 this.player = player;
                 itemContainer = new ItemContainer
                 {
@@ -78,6 +82,9 @@ namespace Oxide.Plugins
 
             public static virtualContainer find(BasePlayer player)
             {
+#if DEBUG2
+                player.ChatMessage("finding virtual container");
+#endif
                 virtualContainer output = null;
 
                 player.gameObject.TryGetComponent<virtualContainer>(out output);
@@ -87,6 +94,9 @@ namespace Oxide.Plugins
 
             public void send()
             {
+#if DEBUG2
+                player.ChatMessage("sending virtual container");
+#endif
                 if (player == null || itemContainer == null) return;
                 PlayerLoot loot = player.inventory.loot;
 
@@ -105,7 +115,10 @@ namespace Oxide.Plugins
 
             public void close()
             {
-                if(item != null) player.GiveItem(item);
+#if DEBUG2
+                player.ChatMessage("closing virtual container");
+#endif
+                if (item != null) player.GiveItem(item);
                 pluginInstance.closeUI(this);
                 Destroy(this);
             }
@@ -209,6 +222,9 @@ namespace Oxide.Plugins
 
             //lang
             lang.RegisterMessages(messages, this);
+
+            //hooks
+            Unsubscribe(nameof(CanAcceptItem));
         }
 
         private void OnSkinDataUpdated()
@@ -225,14 +241,27 @@ namespace Oxide.Plugins
         private void OnPlayerLootEnd(PlayerLoot loot)
         {
             var player = loot.gameObject.GetComponent<BasePlayer>();
-            if (player != loot.entitySource)
-                return;
+            if (player != loot.entitySource) return;
 
+            virtualContainer container = virtualContainer.find(player);
+            if (container == null) return;
 #if DEBUG
-            player.ChatMessage("OnPlayerLootEnd: closing virtualContainer");
+            player.ChatMessage($"OnPlayerLootEnd: closing virtualContainer {container.player}");
 #endif
-            virtualContainer.find(player)?.close();
+            container.close();
             Unsubscribe(nameof(CanAcceptItem));
+        }
+
+        private object CanLootPlayer(BasePlayer looter, UnityEngine.Object target)
+        {
+            if (looter != target) return null;
+#if DEBUG2
+            looter.ChatMessage("CanLootPlayer: searching for virtualContainer");
+#endif
+            var container = virtualContainer.find(looter);
+            if (container == null) return null;
+
+            return true;
         }
 
         ItemContainer.CanAcceptResult? CanAcceptItem(ItemContainer container, Item item, int targetPos)
@@ -255,34 +284,47 @@ namespace Oxide.Plugins
 
         #region UI
 
+        #region UI parameters
+        float FadeIn = 0.2f;
+        float FadeOut = 0.2f;
+        #endregion
+
         public void sendUI(virtualContainer container)
         {
+#if DEBUG
+            container.player.ChatMessage("sending UI");
+#endif
             GuiContainer containerGUI = new GuiContainer(this, "background");
-            containerGUI.addImage("GUI_1_1", new Rectangle(0, 0, 393, 30, 1920, 1080, true), "GUI_1_1", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_2", new Rectangle(393, 0, 265, 837, 1920, 1080, true), "GUI_1_2", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_3", new Rectangle(658, 0, 570, 573, 1920, 1080, true), "GUI_1_3", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_4", new Rectangle(1228, 0, 692, 643, 1920, 1080, true), "GUI_1_4", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_5", new Rectangle(0, 30, 134, 807, 1920, 1080, true), "GUI_1_5", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_6", new Rectangle(1228, 643, 130, 88, 1920, 1080, true), "GUI_1_8", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_7", new Rectangle(1439, 643, 481, 88, 1920, 1080, true), "GUI_1_10", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_8", new Rectangle(1228, 731, 692, 326, 1920, 1080, true), "GUI_1_11", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_9", new Rectangle(134, 814, 259, 23, 1920, 1080, true), "GUI_1_12", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_10", new Rectangle(0, 837, 74, 243, 1920, 1080, true), "GUI_1_13", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_11", new Rectangle(637, 837, 21, 71, 1920, 1080, true), "GUI_1_15", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_12", new Rectangle(74, 908, 584, 172, 1920, 1080, true), "GUI_1_16", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_13", new Rectangle(658, 1057, 1262, 23, 1920, 1080, true), "GUI_1_17", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 259, 784, 1920, 1080, true), "GUI_1_6", GuiContainer.Layer.under, null, 0, 0);
-            containerGUI.addImage("GUI_1_15", new Rectangle(658, 573, 570, 484, 1920, 1080, true), "GUI_1_7", GuiContainer.Layer.under, null, 0, 0);
-            containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 88, 1920, 1080, true), "GUI_1_9", GuiContainer.Layer.under, null, 0, 0);
-            containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 563, 71, 1920, 1080, true), "GUI_1_14", GuiContainer.Layer.under, null, 0, 0);
-            containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(""));
+            containerGUI.addImage("GUI_1_1", new Rectangle(0, 0, 393, 30, 1920, 1080, true), "GUI_1_1", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_2", new Rectangle(393, 0, 265, 837, 1920, 1080, true), "GUI_1_2", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_3", new Rectangle(658, 0, 570, 573, 1920, 1080, true), "GUI_1_3", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_4", new Rectangle(1228, 0, 692, 643, 1920, 1080, true), "GUI_1_4", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_5", new Rectangle(0, 30, 134, 807, 1920, 1080, true), "GUI_1_5", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_6", new Rectangle(1228, 643, 130, 88, 1920, 1080, true), "GUI_1_8", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_7", new Rectangle(1439, 643, 481, 88, 1920, 1080, true), "GUI_1_10", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_8", new Rectangle(1228, 731, 692, 326, 1920, 1080, true), "GUI_1_11", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_9", new Rectangle(134, 814, 259, 23, 1920, 1080, true), "GUI_1_12", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_10", new Rectangle(0, 837, 74, 243, 1920, 1080, true), "GUI_1_13", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_11", new Rectangle(637, 837, 21, 71, 1920, 1080, true), "GUI_1_15", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_12", new Rectangle(74, 908, 584, 172, 1920, 1080, true), "GUI_1_16", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_13", new Rectangle(658, 1057, 1262, 23, 1920, 1080, true), "GUI_1_17", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 259, 784, 1920, 1080, true), "GUI_1_6", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_15", new Rectangle(658, 573, 570, 484, 1920, 1080, true), "GUI_1_7", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 88, 1920, 1080, true), "GUI_1_9", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+            containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 563, 71, 1920, 1080, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
+#if DEBUG
+            //keeping this here for debugging purposes.
+            containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(1, 0, 0, 0.5f), FadeIn, FadeOut, new GuiText(""));
+#endif
             containerGUI.display(container.player);
-            container.player.ChatMessage("sendUIworked"); // debug
         }
 
         public void closeUI(virtualContainer container)
         {
-
+#if DEBUG
+            container.player.ChatMessage("closing UI");
+#endif
+            GuiTracker.getGuiTracker(container.player).destroyGui(this, "background");
         }
 
         private void onItemInserted(virtualContainer container, Item item)
