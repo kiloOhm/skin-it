@@ -467,6 +467,7 @@ namespace Oxide.Plugins
             player.ChatMessage("testing");
 #endif
             List<string> testList = new List<string> { "entry1", "entry2", "entry3" };
+            categories(player, testList);
         }
         #endregion
 
