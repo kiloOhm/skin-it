@@ -10,6 +10,7 @@ using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -260,6 +261,9 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "GUI_1_Fill_1", "https://i.imgur.com/F24t7V8.jpg");
             guiCreator.registerImage(this, "GUI_1_Fill_2", "https://i.imgur.com/Fae4VRR.jpg");
             guiCreator.registerImage(this, "Text_1", "https://i.imgur.com/mirJ3cR.png");
+            guiCreator.registerImage(this, "availableSkinsPanel", "https://i.imgur.com/ZhArsw3.png");
+            guiCreator.registerImage(this, "previewPanel", "https://i.imgur.com/MrTYRlK.png");
+            guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
 
             //lang
             lang.RegisterMessages(messages, this);
@@ -365,22 +369,90 @@ namespace Oxide.Plugins
             containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 20, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
-
             containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)));
 #if DEBUG
             //keeping this here for debugging purposes.
             // containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(1, 0, 0, 0.5f), FadeIn, FadeOut, new GuiText(""));
 #endif
             containerGUI.display(container.player);
+
+            List<string> testList = new List<string> { "Western", "Space", "Medical", "Chemists", "Christmas", "Naughty" };
+            List<string> picturesList = new List<string> {"smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", };
+            categories(container.player, testList);
+            panelOne(container.player, picturesList);
         }
 
+        public void panelOne(BasePlayer player, List<string> picturesList, int activePicture = 0)
+        {
+            double OriginX = 487;
+            double xSpacing;
+            double OriginY;
+            double OriginY1 = 87;
+            double OriginY2 = 210;
+            double OriginY3 = 339;
+            double Height = 95;
+            double maximumWidth = 950;
+            int picturesEachRow = 10;
+            int numberOfRows = 3;
+            int totalPictures = picturesEachRow * numberOfRows;
+            double widthEach = maximumWidth / picturesEachRow;
+
+            GuiContainer containerGUI = new GuiContainer(this, "panelOne", "background");
+            int i = 0;
+            foreach(string s in picturesList)
+            {
+                if(i<picturesEachRow)
+                {
+                    xSpacing = OriginX + (widthEach * i);
+                    OriginY = OriginY1;
+                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), picturesList[i], GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
+                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", 10, new GuiColor(255, 255, 255, 0.8f)));
+
+
+                }
+                else if (i>=picturesEachRow && i<(picturesEachRow*2))
+                {
+                    xSpacing = (OriginX + (widthEach * i))-(widthEach*picturesEachRow);
+                    OriginY = OriginY2;
+                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), picturesList[i], GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
+                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", 10, new GuiColor(255, 255, 255, 0.8f)));
+
+                }
+                else if (i<totalPictures)
+                {
+                    xSpacing = (OriginX + (widthEach * i)) - ((widthEach * picturesEachRow)*2);
+                    OriginY = OriginY3;
+                }
+
+                int index = i;
+                Action<BasePlayer, string[]> callback = (bPlayer, input) =>
+                {
+                    panelOne(bPlayer, picturesList, index);
+                };
+                    /* containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), picturesList[i], GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
+                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", 10, new GuiColor(255, 255, 255, 0.8f)), callback);
+                    */
+                i++;
+            }
+          
+
+
+            containerGUI.addImage("availableSkinsPanel", new Rectangle(452, 32, 1021, 451, 1920, 1080, true), "availableSkinsPanel", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
+            containerGUI.addImage("previewPanel", new Rectangle(1492, 32, 389, 451, 1920, 1080, true), "previewPanel", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
+            containerGUI.addPanel("previewPanelText", new Rectangle(1501, 0, 371, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PREVIEW", 30, new GuiColor(255, 255, 255, 0.5f)));
+            containerGUI.addPanel("availableSkinsPanelText", new Rectangle(696, 0, 534, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("AVAILABLE SKINS", 30, new GuiColor(255, 255, 255, 0.5f)));
+            containerGUI.display(player);
+
+        }
+        // BEGIN CATEGORIES
         public void categories(BasePlayer player, List<string> categoriesList, int activeCategory = 0)
         {
-            double OriginY = 500;
-            double Height = 45;
-            double maximumWidth = 1920;
+            double OriginY = 494;
+            double Height = 46;
+            double maximumWidth = 1429;
             double widthEach = maximumWidth / categoriesList.Count;
-            double OriginX = 0;
+            double OriginX = 452;
+            int fontSize = 15;
 
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
             int i = 0;
@@ -394,11 +466,11 @@ namespace Oxide.Plugins
                 };
                 if (i == activeCategory)
                 {
-                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(s, 10, new GuiColor(134, 190, 41, 0.8f)), callback);
+                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(s.ToUpper(), fontSize, new GuiColor(134, 190, 41, 0.8f)), callback);
                 }
                 else
                 {
-                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(s, 10, new GuiColor(255, 255, 255, 0.8f)), callback);
+                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(s.ToUpper(), fontSize, new GuiColor(255, 255, 255, 0.8f)), callback);
                 }
                 i++;
             }
