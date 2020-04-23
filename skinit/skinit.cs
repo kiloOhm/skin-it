@@ -5,8 +5,10 @@ using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
 using Oxide.Core.Plugins;
+using Rust.Workshop;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using UnityEngine;
 using static Oxide.Plugins.GUICreator;
 
@@ -87,6 +89,9 @@ namespace Oxide.Plugins
                 player.ClientRPCPlayer(null, player, "RPC_OpenLootPanel", "generic");
 
                 pluginInstance.sendUI(this);
+
+
+
                 pluginInstance.Subscribe(nameof(CanAcceptItem));
             }
 
@@ -114,23 +119,23 @@ namespace Oxide.Plugins
             lang.RegisterMessages(messages, this);
             cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
-            guiCreator.registerImage(this, "GUI_1_1", "https://i.ibb.co/V3VRWg7/Skin-Mockup-01.jpg");
-            guiCreator.registerImage(this, "GUI_1_2", "https://i.ibb.co/nf93ptY/Skin-Mockup-02.jpg");
-            guiCreator.registerImage(this, "GUI_1_3", "https://i.ibb.co/CWkFW7f/Skin-Mockup-03.jpg");
-            guiCreator.registerImage(this, "GUI_1_4", "https://i.ibb.co/54DDKNv/Skin-Mockup-04.jpg");
-            guiCreator.registerImage(this, "GUI_1_5", "https://i.ibb.co/3SsxSKD/Skin-Mockup-05.jpg");
-            guiCreator.registerImage(this, "GUI_1_8", "https://i.ibb.co/JvHNJCb/Skin-Mockup-08.jpg");
-            guiCreator.registerImage(this, "GUI_1_10", "https://i.ibb.co/wJ4f7jD/Skin-Mockup-10.jpg");
-            guiCreator.registerImage(this, "GUI_1_11", "https://i.ibb.co/mvj4s5h/Skin-Mockup-11.jpg");
-            guiCreator.registerImage(this, "GUI_1_12", "https://i.ibb.co/3FbQQsR/Skin-Mockup-12.jpg");
-            guiCreator.registerImage(this, "GUI_1_13", "https://i.ibb.co/Z2Vr4k1/Skin-Mockup-13.jpg");
-            guiCreator.registerImage(this, "GUI_1_15", "https://i.ibb.co/FVcSSgm/Skin-Mockup-15.jpg");
-            guiCreator.registerImage(this, "GUI_1_16", "https://i.ibb.co/6b2g3Sx/Skin-Mockup-16.jpg");
-            guiCreator.registerImage(this, "GUI_1_17", "https://i.ibb.co/1973FmT/Skin-Mockup-17.jpg");
-            guiCreator.registerImage(this, "GUI_1_6", "https://i.ibb.co/MGMGxXB/Skin-Mockup-06.jpg");
-            guiCreator.registerImage(this, "GUI_1_7", "https://i.ibb.co/wBCDVrR/Skin-Mockup-07.jpg");
-            guiCreator.registerImage(this, "GUI_1_9", "https://i.ibb.co/R27hRD0/Skin-Mockup-09.jpg");
-            guiCreator.registerImage(this, "GUI_1_14", "https://i.ibb.co/6Zmgrxj/Skin-Mockup-14.jpg");
+            guiCreator.registerImage(this, "GUI_1_1", "https://i.ibb.co/PYZ5CTh/Skin-Mockup-01.jpg"); 
+            guiCreator.registerImage(this, "GUI_1_2", "https://i.ibb.co/MfB43Xf/Skin-Mockup-02.jpg");
+            guiCreator.registerImage(this, "GUI_1_3", "https://i.ibb.co/JdMRrHC/Skin-Mockup-03.jpg");
+            guiCreator.registerImage(this, "GUI_1_4", "https://i.ibb.co/qrG3wVp/Skin-Mockup-04.jpg");
+            guiCreator.registerImage(this, "GUI_1_5", "https://i.ibb.co/bXFfyKq/Skin-Mockup-05.jpg");
+            guiCreator.registerImage(this, "GUI_1_8", "https://i.ibb.co/HgnsXgQ/Skin-Mockup-08.jpg");
+            guiCreator.registerImage(this, "GUI_1_10", "https://i.ibb.co/Wvm8p8Y/Skin-Mockup-10.jpg");
+            guiCreator.registerImage(this, "GUI_1_11", "https://i.ibb.co/stdb37p/Skin-Mockup-11.jpg");
+            guiCreator.registerImage(this, "GUI_1_12", "https://i.ibb.co/hCmRWbd/Skin-Mockup-12.jpg");
+            guiCreator.registerImage(this, "GUI_1_13", "https://i.ibb.co/bsPqctf/Skin-Mockup-13.jpg");
+            guiCreator.registerImage(this, "GUI_1_15", "https://i.ibb.co/sRYQxFG/Skin-Mockup-15.jpg");
+            guiCreator.registerImage(this, "GUI_1_16", "https://i.ibb.co/0qbzczC/Skin-Mockup-16.jpg");
+            guiCreator.registerImage(this, "GUI_1_17", "https://i.ibb.co/QJRRvVW/Skin-Mockup-17.jpg");
+            // guiCreator.registerImage(this, "GUI_1_6", "https://i.ibb.co/MGMGxXB/Skin-Mockup-06.jpg");
+            guiCreator.registerImage(this, "GUI_1_7", "https://i.ibb.co/xL0q2NH/Skin-Mockup-07.jpg");
+            guiCreator.registerImage(this, "GUI_1_9", "https://i.ibb.co/8g8wKyN/Skin-Mockup-09.jpg");
+            guiCreator.registerImage(this, "GUI_1_14", "https://i.ibb.co/BzKWhqx/Skin-Mockup-14.jpg");
         }
 
         private void OnPlayerLootEnd(PlayerLoot loot)
@@ -168,6 +173,7 @@ namespace Oxide.Plugins
 
         public void sendUI(virtualContainer container)
         {
+            
             GuiContainer containerGUI = new GuiContainer(this, "background");
             containerGUI.addImage("GUI_1_1", new Rectangle(0, 0, 393, 30, 1920, 1080, true), "GUI_1_1", GuiContainer.Layer.menu, null, 0, 0);
             containerGUI.addImage("GUI_1_2", new Rectangle(393, 0, 265, 837, 1920, 1080, true), "GUI_1_2", GuiContainer.Layer.menu, null, 0, 0);
@@ -182,13 +188,50 @@ namespace Oxide.Plugins
             containerGUI.addImage("GUI_1_11", new Rectangle(637, 837, 21, 71, 1920, 1080, true), "GUI_1_15", GuiContainer.Layer.menu, null, 0, 0);
             containerGUI.addImage("GUI_1_12", new Rectangle(74, 908, 584, 172, 1920, 1080, true), "GUI_1_16", GuiContainer.Layer.menu, null, 0, 0);
             containerGUI.addImage("GUI_1_13", new Rectangle(658, 1057, 1262, 23, 1920, 1080, true), "GUI_1_17", GuiContainer.Layer.menu, null, 0, 0);
-            containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 259, 784, 1920, 1080, true), "GUI_1_6", GuiContainer.Layer.under, null, 0, 0);
+            // containerGUI.addImage("GUI_1_14", new Rectangle(134, 30, 259, 784, 1920, 1080, true), "GUI_1_6", GuiContainer.Layer.under, null, 0, 0);
             containerGUI.addImage("GUI_1_15", new Rectangle(658, 573, 570, 484, 1920, 1080, true), "GUI_1_7", GuiContainer.Layer.under, null, 0, 0);
             containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 88, 1920, 1080, true), "GUI_1_9", GuiContainer.Layer.under, null, 0, 0);
             containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 563, 71, 1920, 1080, true), "GUI_1_14", GuiContainer.Layer.under, null, 0, 0);
             containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(""));
+            containerGUI.addPlainButton("checkout", new Rectangle(1349, 892, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("SKIN-IT!",30, new GuiColor(134, 190, 41, 0.8f)));           
             containerGUI.display(container.player);
             container.player.ChatMessage("sendUIworked"); // debug
+
+        }
+
+
+        public void categories(virtualContainer container, List<string> categoriesList = null, int activeCategory=1)
+        {
+            GuiContainer containerGUI = new GuiContainer(this, "categories");
+            categoriesList.Add("Category 1");
+            categoriesList.Add("Category 2");
+            categoriesList.Add("Category 3");
+            categoriesList.Add("Category 4");
+            categoriesList.Add("Category 5");
+            categoriesList.Add("Category 6");
+            categoriesList.Add("Category 7");
+            categoriesList.Add("Category 8");
+
+            double maximumWidth = 1392;
+            double widthEach = maximumWidth / categoriesList.Count;
+            double initialX = 466;
+
+            
+
+            for (int i=1; i>categoriesList.Count+1;i++)
+            {
+                
+                float xSpacing = (float)initialX * i;
+                if (i==activeCategory)
+                {
+                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText($"{categoriesList[i-1]}", 10, new GuiColor(134, 190, 41, 0.8f)));
+                } else
+                {
+                    containerGUI.addPlainButton($"category{i}", new Rectangle(xSpacing, 502, 174, 34, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{categoriesList[i - 1]}", 10, new GuiColor(255,255,255, 0.8f)));
+                }
+            }
+            containerGUI.display(container.player);
+
         }
 
         public void closeUI(virtualContainer container)
