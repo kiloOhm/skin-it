@@ -2,7 +2,6 @@
 
 #define DEBUG
 //#define DEBUG2
-using Facepunch.Extend;
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
@@ -13,7 +12,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using UnityEngine;
 using static Oxide.Plugins.GUICreator;
 
@@ -25,7 +23,7 @@ namespace Oxide.Plugins
     {
         #region references
         [PluginReference]
-        private Plugin ImageLibrary;
+        private Plugin ServerRewards, Economics;
 
         private GUICreator guiCreator;
 
@@ -104,7 +102,7 @@ namespace Oxide.Plugins
             }
         }
 
-        public class virtualContainer:MonoBehaviour
+        public class virtualContainer : MonoBehaviour
         {
             public BasePlayer player;
             public ItemContainer itemContainer;
@@ -181,6 +179,12 @@ namespace Oxide.Plugins
         void Init()
         {
             permission.RegisterPermission("skinit.use", this);
+            permission.RegisterPermission("skinit.admin", this);
+
+            permission.RegisterPermission("skinit.attire", this);
+            permission.RegisterPermission("skinit.deployable", this);
+            permission.RegisterPermission("skinit.tool", this);
+            permission.RegisterPermission("skinit.weapon", this);
             File = Interface.Oxide.DataFileSystem.GetFile("skinit/skins");
             loadData();
         }
@@ -194,20 +198,20 @@ namespace Oxide.Plugins
             foreach (string shortname in config.skins.Keys)
             {
                 Skinnable item = data.GetSkinnable(shortname);
-                if(item == null)
+                if (item == null)
                 {
                     item = new Skinnable(shortname);
                     data.items.Add(item);
                 }
-                foreach(string category in config.skins[shortname].Keys)
+                foreach (string category in config.skins[shortname].Keys)
                 {
                     Category cat = data.GetCategory(item, category);
-                    if(cat == null)
+                    if (cat == null)
                     {
                         cat = new Category(category, item.shortname);
                         item.categories.Add(cat);
                     }
-                    foreach(ulong id in config.skins[shortname][category])
+                    foreach (ulong id in config.skins[shortname][category])
                     {
                         if (data.GetSkin(cat, id) == null)
                         {
@@ -218,17 +222,17 @@ namespace Oxide.Plugins
 
                 }
             }
-            foreach(string cat in toBeAdded.Keys)
+            foreach (string cat in toBeAdded.Keys)
             {
                 addSkins(toBeAdded[cat], cat, false);
             }
 
             //delete removed skins
             data.items.RemoveAll(item => !config.skins.ContainsKey(item.shortname));
-            foreach(Skinnable item in data.items)
+            foreach (Skinnable item in data.items)
             {
                 item.categories.RemoveAll(cat => !config.skins[item.shortname].ContainsKey(cat.name));
-                foreach(Category cat in item.categories)
+                foreach (Category cat in item.categories)
                 {
                     cat.skins.RemoveAll(skin => !config.skins[item.shortname][cat.name].Contains(skin.id));
                 }
@@ -240,14 +244,16 @@ namespace Oxide.Plugins
 
             //references
             guiCreator = (GUICreator)Manager.GetPlugin("GUICreator");
-            if (ImageLibrary == null)
+            if (config.useServerRewards && ServerRewards == null) Puts("ServerRewards not loaded! get it at https://umod.org/plugins/server-rewards");
+            if ((config.useServerRewards || config.useEconomics) && Economics == null) Puts("Economics not loaded! get it at https://umod.org/plugins/economics");
+            if (guiCreator == null)
             {
-                Puts("ImageLibrary is not loaded! get it here https://umod.org/plugins/image-library");
+                Puts("GUICreator missing! This shouldn't happen");
                 return;
             }
 
             //commands
-            cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
+            cmd.AddChatCommand(config.command, this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
             cmd.AddConsoleCommand("skinit.add", this, nameof(addCommand));
 
@@ -316,7 +322,7 @@ namespace Oxide.Plugins
             if (!player) return null;
             virtualContainer vContainer = virtualContainer.find(player);
             if (vContainer == null) return null;
-            if(item?.parent?.uid == vContainer.uid)
+            if (item?.parent?.uid == vContainer.uid)
             {
                 onItemRemoved(vContainer, item);
                 return null;
@@ -339,14 +345,16 @@ namespace Oxide.Plugins
 
         public void sendUI(virtualContainer container)
         {
+            StringBuilder sb = new StringBuilder();
+            if (container.player.IPlayer.HasPermission("skinit.attire")) sb.Append("attire ");
+            if (container.player.IPlayer.HasPermission("skinit.deployable")) sb.Append("deployables ");
+            if (container.player.IPlayer.HasPermission("skinit.tool")) sb.Append("tools ");
+            if (container.player.IPlayer.HasPermission("skinit.weapon")) sb.Append("weapons ");
+            string skinPermissions = sb.ToString().ToUpper();
 #if DEBUG
             container.player.ChatMessage("sending UI");
 #endif
             GuiContainer containerGUI = new GuiContainer(this, "background");
-            int cost = 35;
-            int balance = 1550;
-            string skinPermissions = "attire, deployables, tools, weapons";
-            skinPermissions = skinPermissions.ToUpper();
             containerGUI.addImage("GUI_1_1", new Rectangle(0, 0, 392, 30, 1921, 1080, true), "GUI_1_1", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_2", new Rectangle(392, 0, 271, 837, 1921, 1081, true), "GUI_1_2", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_3", new Rectangle(663, 0, 562, 576, 1921, 1081, true), "GUI_1_3", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
@@ -367,10 +375,8 @@ namespace Oxide.Plugins
             containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 89, 1921, 1081, true), "GUI_1_9", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 557, 71, 1921, 1081, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("Text_1", new Rectangle(1334, 925, 460, 121, 1920, 1080, true), "Text_1", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
-            containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {cost}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {balance}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 20, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 18, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
             containerGUI.display(container.player);
             panelOneBackground(container.player);
@@ -378,28 +384,36 @@ namespace Oxide.Plugins
 
         }
 
-        public void skinitButton(virtualContainer container, Skin activeSkin = null, Item item = null, bool success = false, bool failure = false, bool attempt = false)
+        public enum buttonStates {idle, noSelected, noPermission, cantAfford, success};
+        public void skinitButton(virtualContainer container, Skin activeSkin = null, Item item = null, buttonStates flag = buttonStates.idle)
         {
             BasePlayer player = container.player;
             Action<BasePlayer, string[]> Skinit = (bPlayer, input) =>
             {
                 if(activeSkin == null || item == null)
                 {
-                    skinitButton(container, attempt: true);
+                    skinitButton(container, flag : buttonStates.noSelected);
                 }
                 if(buySkin(container, item, activeSkin))
                 {
-                    skinitButton(container, success: true);
+                    skinitButton(container, flag: buttonStates.success);
                 }
                 else
                 {
-                    skinitButton(container, failure: true);
+                    if(!hasPermission(player, item))
+                    {
+                        skinitButton(container, activeSkin, item, flag: buttonStates.noPermission);
+                    }
+                    else if(getCost(player, item) > getPoints(player))
+                    {
+                        skinitButton(container, activeSkin, item, flag: buttonStates.cantAfford);
+                    }
                 }
 
             };
             GuiContainer containerGUI = new GuiContainer(this, "skinitButton", "background");
 
-            if (success) 
+            if (flag == buttonStates.success) 
             {
                 containerGUI.addPlainButton("checkout_success", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SUCCESS", 30, new GuiColor(134, 190, 41, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
@@ -407,15 +421,23 @@ namespace Oxide.Plugins
                     skinitButton(container);
                 });
             }
-            else if (failure) 
+            else if (flag == buttonStates.noPermission) 
             {
-                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU CAN'T BUY THIS SKIN", 30, new GuiColor(162, 51, 46, 0.8f)));
+                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU DON'T HAVE PERMISSION", 20, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
-                    skinitButton(container);
+                    skinitButton(container, activeSkin, item);
                 });
             }
-            else if (attempt)
+            else if (flag == buttonStates.cantAfford)
+            {
+                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU CAN'T AFFORD THIS SKIN", 20, new GuiColor(162, 51, 46, 0.8f)));
+                timer.Once(1f, () => // After a second launch panelOne again with default parameters
+                {
+                    skinitButton(container, activeSkin, item);
+                });
+            }
+            else if (flag == buttonStates.noSelected)
             {
                 containerGUI.addPlainButton("checkout_attempt", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO SKIN SELECTED!", 30, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
@@ -484,7 +506,7 @@ namespace Oxide.Plugins
                 Action<BasePlayer, string[]> callback = (bPlayer, input) =>
                 {
                     panelOne(player, item, skinListOfLists, activeSkin = index, page);
-                    previewPanel(bPlayer, skinList[index]);
+                    previewPanel(bPlayer, item, skinList[index]);
                     skinitButton(virtualContainer.find(player), skinList[index], item);
                 };
                 if (i<picturesEachRow)
@@ -550,11 +572,12 @@ namespace Oxide.Plugins
 
         }
 
-        public void previewPanel(BasePlayer player, Skin skin)
+        public void previewPanel(BasePlayer player, Item item, Skin skin)
         {
             GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "panelOne");
             containerGUI.addImage("previewPicture", new Rectangle(1520, 66, 332, 333, 1920, 1080, true), skin.safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
             containerGUI.addPanel("previewPictureText", new Rectangle(1501, 399, 371, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skin.name}", 20, new GuiColor(255, 255, 255, 0.5f)));
+            containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {getCost(player, item)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             containerGUI.display(player);
         }
         
@@ -568,6 +591,7 @@ namespace Oxide.Plugins
             int fontSize = 15;
 
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
+            containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             int i = 0;
             foreach(Category Cat in categoriesList)
             {
@@ -611,7 +635,6 @@ namespace Oxide.Plugins
 #if DEBUG
             PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
-            if (!canSkin(item)) return;
             Skinnable skinnable = data.GetSkinnable(item.info.shortname);
             if(skinnable == null)
             {
@@ -789,13 +812,18 @@ namespace Oxide.Plugins
             }
         }
 
-        private bool canSkin(Item item)
+        private bool canSkin(BasePlayer player, Item item)
         {
+            int cost;
+            if (!hasPermission(player, item, out cost)) return false;
+            if (getPoints(player) < cost) return false;
             return true;
         }
 
         private bool buySkin(virtualContainer container, Item item, Skin skin)
         {
+            if (!canSkin(container.player, item)) return false;
+            takePoints(container.player, getCost(container.player, item));
             Item newItem = applySkin(container, item, skin.id);
             onItemInserted(container, newItem);
             return true;
@@ -810,6 +838,76 @@ namespace Oxide.Plugins
                 output.Add(cat);
             }
             return output;
+        }
+
+        private bool hasPermission(BasePlayer player, Item item)
+        {
+            int temp;
+            return hasPermission(player, item, out temp);
+        }
+
+        private int getCost(BasePlayer player, Item item)
+        {
+            int cost = 0;
+            hasPermission(player, item, out cost);
+            return cost;
+        }
+
+        private bool hasPermission(BasePlayer player, Item item, out int cost)
+        {
+            cost = 0;
+            switch (item.info.category)
+            {
+                case ItemCategory.Attire:
+                    if (!player.IPlayer.HasPermission("skinit.attire")) return false;
+                    cost = config.costAttire;
+                    break;
+                case ItemCategory.Construction:
+                case ItemCategory.Items:
+                    if (!player.IPlayer.HasPermission("skinit.deployable")) return false;
+                    cost = config.costDeployable;
+                    break;
+                case ItemCategory.Tool:
+                    if (!player.IPlayer.HasPermission("skinit.tool")) return false;
+                    cost = config.costTool;
+                    break;
+                case ItemCategory.Weapon:
+                    if (!player.IPlayer.HasPermission("skinit.weapon")) return false;
+                    cost = config.costWeapon;
+                    break;
+            }
+            return true;
+        }
+
+        private int getPoints(BasePlayer player)
+        {
+            if (config.useServerRewards)
+            {
+                object answer = ServerRewards?.Call<int>("CheckPoints", player.userID);
+                if (answer != null) return (int)answer;
+            }
+            else if (config.useEconomics)
+            {
+                object answer = Economics?.Call<int>("Balance", player.userID);
+                if (answer != null) return (int)answer;
+            }
+            return 0;
+        }
+
+        private bool takePoints(BasePlayer player, int amount)
+        {
+            if (config.useServerRewards)
+            {
+                object answer = ServerRewards?.Call<int>("TakePoints", player.userID, amount);
+                if (answer == null) return false;
+                else return true;
+            }
+            else if (config.useEconomics)
+            {
+                object answer = Economics?.Call<int>("Withdraw", player.userID, (double)amount);
+                if (answer == null) return false;
+            }
+            return false;
         }
 
         #endregion
@@ -998,6 +1096,27 @@ namespace Oxide.Plugins
 
         private class ConfigData
         {
+            [JsonProperty(PropertyName = "Chat Command")]
+            public string command;
+
+            [JsonProperty(PropertyName = "use Server Rewards")]
+            public bool useServerRewards;
+
+            [JsonProperty(PropertyName = "use Economics")]
+            public bool useEconomics;
+
+            [JsonProperty(PropertyName = "Attire Cost")]
+            public int costAttire;
+
+            [JsonProperty(PropertyName = "Deployable Cost")]
+            public int costDeployable;
+
+            [JsonProperty(PropertyName = "Tool Cost")]
+            public int costTool;
+
+            [JsonProperty(PropertyName = "Weapon Cost")]
+            public int costWeapon;
+
             [JsonProperty(PropertyName = "Skins")]
             public Dictionary<string, Dictionary<string, List<ulong>>> skins;
 
@@ -1007,6 +1126,13 @@ namespace Oxide.Plugins
         {
             return new ConfigData
             {
+                command = "skinit",
+                useServerRewards = true,
+                useEconomics = true,
+                costAttire = 5,
+                costDeployable = 10,
+                costTool = 15,
+                costWeapon = 20,
                 skins = new Dictionary<string, Dictionary<string, List<ulong>>>
                 {
                     {"rock", new Dictionary<string, List<ulong>>
