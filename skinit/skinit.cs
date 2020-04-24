@@ -10,7 +10,7 @@ using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -39,12 +39,44 @@ namespace Oxide.Plugins
         }
 
         DynamicConfigFile File;
-        StoredData storedData;
+        Data data;
 
         private const int slot = 19;
         #endregion
 
         #region classes
+
+        [JsonObject(MemberSerialization.OptIn)]
+        public class Skinnable
+        {
+            [JsonProperty(PropertyName = "Item Shortname")]
+            public string shortname;
+            [JsonProperty(PropertyName = "Categories")]
+            public List<Category> categories = new List<skinit.Category>();
+
+            public Skinnable(string shortname)
+            {
+                this.shortname = shortname;
+            }
+        }
+
+
+        [JsonObject(MemberSerialization.OptIn)]
+        public class Category
+        {
+            [JsonProperty(PropertyName = "Name")]
+            public string name;
+            [JsonProperty(PropertyName = "Item Shortname")]
+            public string shortname;
+            [JsonProperty(PropertyName = "Skins")]
+            public List<Skin> skins = new List<skinit.Skin>();
+
+            public Category(string name, string shortname)
+            {
+                this.name = name;
+                this.shortname = shortname;
+            }
+        }
 
         [JsonObject(MemberSerialization.OptIn)]
         public class Skin
@@ -60,6 +92,15 @@ namespace Oxide.Plugins
             public ulong id;
             [JsonProperty(PropertyName = "Preview URL")]
             public string url;
+
+            public Skin(string name, string category, string shortname, ulong id, string url)
+            {
+                this.name = name;
+                this.category = category;
+                this.shortname = shortname;
+                this.id = id;
+                this.url = url;
+            }
         }
 
         public class virtualContainer:MonoBehaviour
@@ -133,50 +174,6 @@ namespace Oxide.Plugins
             }
         }
 
-        public class tag_
-        {
-            public string tag;
-        }
-
-        public class publishedFile
-        {
-            public string publishedfileid;
-            public int result;
-            public string creator;
-            public ulong creator_app_id;
-            public ulong consumer_app_id;
-            public string filename;
-            public ulong file_size;
-            public string preview_url;
-            public string hcontent_preview;
-            public string title;
-            public string description;
-            public ulong time_created;
-            public ulong time_updated;
-            public int visibility;
-            public int banned;
-            public string ban_reason;
-            public int subscriptions;
-            public int favourited;
-            public int lifetime_subscriptions;
-            public int lifetime_favourited;
-            public uint views;
-            public List<tag_> tags;
-        }
-
-        public class steamAnswer 
-        {
-            public int result;
-            public int resultcount;
-            public List<publishedFile> publishedfiledetails;
-
-        }
-
-        public class webResponse
-        {
-            public steamAnswer response;
-        }
-
         #endregion
 
         #region oxide hooks
@@ -189,46 +186,56 @@ namespace Oxide.Plugins
 
         void OnServerInitialized()
         {
-            //process config
+            #region config processing
 
-            foreach(string shortname in config.skins.Keys)
+            //add new skins
+            Dictionary<string, List<ulong>> toBeAdded = new Dictionary<string, List<ulong>>();
+            foreach (string shortname in config.skins.Keys)
             {
+                Skinnable item = data.GetSkinnable(shortname);
+                if(item == null)
+                {
+                    item = new Skinnable(shortname);
+                    data.items.Add(item);
+                }
                 foreach(string category in config.skins[shortname].Keys)
                 {
-                    List<ulong> toBeAdded = new List<ulong>();
+                    Category cat = data.GetCategory(item, category);
+                    if(cat == null)
+                    {
+                        cat = new Category(category, item.shortname);
+                        item.categories.Add(cat);
+                    }
                     foreach(ulong id in config.skins[shortname][category])
                     {
-                        if (!storedData.containsSkin(id)) toBeAdded.Add(id);
+                        if (data.GetSkin(cat, id) == null)
+                        {
+                            if (!toBeAdded.ContainsKey(cat.name)) toBeAdded.Add(cat.name, new List<ulong>());
+                            toBeAdded[cat.name].Add(id);
+                        }
                     }
-                    addSkins(toBeAdded, category, false);
+
                 }
+            }
+            foreach(string cat in toBeAdded.Keys)
+            {
+                addSkins(toBeAdded[cat], cat, false);
             }
 
-            List<Skin> toBeRemoved = new List<Skin>();
-            foreach(Skin s in storedData.skins)
+            //delete removed skins
+            data.items.RemoveAll(item => !config.skins.ContainsKey(item.shortname));
+            foreach(Skinnable item in data.items)
             {
-                if(!config.skins.ContainsKey(s.shortname))
+                item.categories.RemoveAll(cat => !config.skins[item.shortname].ContainsKey(cat.name));
+                foreach(Category cat in item.categories)
                 {
-                    toBeRemoved.Add(s);
-                    continue;
+                    cat.skins.RemoveAll(skin => !config.skins[item.shortname][cat.name].Contains(skin.id));
                 }
-                if(!config.skins[s.shortname].ContainsKey(s.category))
-                {
-                    toBeRemoved.Add(s);
-                    continue;
-                }
-                if(!config.skins[s.shortname][s.category].Contains(s.id))
-                {
-                    toBeRemoved.Add(s);
-                    continue;
-                }
-            }
-            foreach(Skin s in toBeRemoved)
-            {
-                storedData.skins.Remove(s);
             }
             saveData();
-            
+
+            #endregion
+
 
             //references
             guiCreator = (GUICreator)Manager.GetPlugin("GUICreator");
@@ -241,6 +248,7 @@ namespace Oxide.Plugins
             //commands
             cmd.AddChatCommand("skinit", this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
+            cmd.AddConsoleCommand("skinit.add", this, nameof(addCommand));
 
             //images
             guiCreator.registerImage(this, "GUI_1_1", "https://i.imgur.com/jqRb4f5.jpg");
@@ -273,14 +281,6 @@ namespace Oxide.Plugins
 
             //hooks
             Unsubscribe(nameof(CanAcceptItem));
-        }
-
-        private void OnSkinDataUpdated()
-        {
-            foreach(Skin s in storedData.skins)
-            {
-                guiCreator.registerImage(this, s.safename, s.url);
-            }
         }
 
         private void OnPlayerLootEnd(PlayerLoot loot)
@@ -412,13 +412,6 @@ namespace Oxide.Plugins
         containerGUI.display(player);
         }
     
-        /// <summary>
-        /// Splits a <see cref="List{T}"/> into multiple chunks.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="list">The list to be chunked.</param>
-        /// <param name="chunkSize">The size of each chunk.</param>
-        /// <returns>A list of chunks.</returns>
         public static List<List<T>> SplitIntoChunks<T>(List<T> list, int chunkSize = 30)
         {
             if (chunkSize <= 0)
@@ -438,7 +431,6 @@ namespace Oxide.Plugins
 
             return retVal;
         }
-
 
         public void panelOneBackground(BasePlayer player) // also background for preview panel
         {
@@ -542,7 +534,6 @@ namespace Oxide.Plugins
 
         }
 
-
         public void previewPanel(BasePlayer player, List<List<string>> picturesListOfLists, int activePicture = 0,int page = 0)
         {
             GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "background");
@@ -598,26 +589,26 @@ namespace Oxide.Plugins
 #if DEBUG
             PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
-            container.item = item;
-            List<Skin> availableSkins = getSkins(item.info.shortname);
+            //container.item = item;
+            //List<Skin> availableSkins = getSkins(item.info.shortname);
 
-            GuiContainer guiContainer = new GuiContainer(this, "skinsTest", "background");
-            int i = 0;
-            foreach(Skin s in availableSkins)
-            {
-                Rectangle pos = new Rectangle(534 + (i * 110), 221, 100, 100, 1920, 1080, true);
-                guiContainer.addImage($"img_{s.safename}", pos, s.safename, GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-                Skin selected = s;
-                Action<BasePlayer, string[]> callback = (bPlayer, input) =>
-                {
-                    bPlayer.ChatMessage($"skinning {selected.name}");
-                    Item newItem = applySkin(container, item, selected.id);
-                    onItemInserted(container, newItem);
-                };
-                guiContainer.addPlainButton($"btn_{s.safename}", new Rectangle(), null, FadeIn, FadeOut, callback: callback, parent: $"img_{s.safename}");
-                i++;
-            }
-            guiContainer.display(container.player);
+            //GuiContainer guiContainer = new GuiContainer(this, "skinsTest", "background");
+            //int i = 0;
+            //foreach(Skin s in availableSkins)
+            //{
+            //    Rectangle pos = new Rectangle(534 + (i * 110), 221, 100, 100, 1920, 1080, true);
+            //    guiContainer.addImage($"img_{s.safename}", pos, s.safename, GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            //    Skin selected = s;
+            //    Action<BasePlayer, string[]> callback = (bPlayer, input) =>
+            //    {
+            //        bPlayer.ChatMessage($"skinning {selected.name}");
+            //        Item newItem = applySkin(container, item, selected.id);
+            //        onItemInserted(container, newItem);
+            //    };
+            //    guiContainer.addPlainButton($"btn_{s.safename}", new Rectangle(), null, FadeIn, FadeOut, callback: callback, parent: $"img_{s.safename}");
+            //    i++;
+            //}
+            //guiContainer.display(container.player);
         }
 
         private void onItemRemoved(virtualContainer container, Item item)
@@ -631,7 +622,7 @@ namespace Oxide.Plugins
         #endregion
 
         #region commands
-        //see Loaded() hook
+
         private void skinitCommand(BasePlayer player, string command, string[] args)
         {
 #if DEBUG
@@ -656,16 +647,41 @@ namespace Oxide.Plugins
                 switch (args[0])
                 {
                     case "add":
-                        if (args.Length < 3) return; 
-                        List<ulong> IDs = new List<ulong>();
-                        for(int i = 2; i < args.Length; i++)
-                        {
-                            IDs.Add(ulong.Parse(args[i]));
-                        }
-                        addSkins(IDs, args[1]);
+                        string answer = addCommand(args.Skip(1).ToArray());
+                        if (answer != null) player.ChatMessage(answer);
                         break;
                 }
             }
+        }
+
+        private void addCommand(ConsoleSystem.Arg arg)
+        {
+            if(!arg.IsAdmin)
+            {
+                BasePlayer player = arg.Player();
+                if (!permission.UserHasPermission(player.UserIDString, "skinit.use"))
+                {
+                    PrintToChat(player, lang.GetMessage("noPermission", this, player.UserIDString));
+                    return;
+                }
+            }
+            string answer = addCommand(arg.Args);
+            if (answer != null) SendReply(arg, answer);
+        }
+
+        private string addCommand(string[] args)
+        {
+            if (args.Length < 1) return null;
+            ulong temp;
+            string category = null;
+            if (!ulong.TryParse(args[0], out temp)) category = args[0];
+            List<ulong> IDs = new List<ulong>();
+            for (int i = (category == null) ? 0 : 1; i < args.Length; i++)
+            {
+                IDs.Add(ulong.Parse(args[i]));
+            }
+            addSkins(IDs, (category == null)?"main":args[0]);
+             return $"added {IDs.Count} skins";
         }
 
         private void testCommand(BasePlayer player, string command, string[] args)
@@ -718,17 +734,6 @@ namespace Oxide.Plugins
             return newItem;
         }
 
-        private List<Skin> getSkins(string shortname, string category = null)
-        {
-            List<Skin> output = new List<Skin>();
-            foreach(Skin s in storedData.skins)
-            {
-                if (category == null && s.shortname == shortname) output.Add(s);
-                else if (s.category == category && s.shortname == shortname) output.Add(s);
-            }
-            return output;
-        }
-
         private void addSkins(List<ulong> IDs, string category, bool cfg = true)
         {
             Action<List<Skin>> callback = (skins) =>
@@ -736,9 +741,27 @@ namespace Oxide.Plugins
                 foreach(Skin s in skins)
                 {
                     s.category = category;
-                    if (!storedData.skins.Contains(s)) storedData.skins.Add(s);
 
-                    if(cfg)
+                    Skinnable item = data.GetSkinnable(s.shortname);
+                    if(item == null)
+                    {
+                        item = new Skinnable(s.shortname);
+                        data.items.Add(item);
+                    }
+                    Category cat = data.GetCategory(item, s.category);
+                    if(cat == null)
+                    {
+                        cat = new Category(s.category, s.shortname);
+                        item.categories.Add(cat);
+                    }
+                    if (data.GetSkin(cat, s.id) == null)
+                    {
+                        cat.skins.Add(s);
+                        guiCreator.registerImage(this, s.safename, s.url);
+                    }
+                    saveData();
+
+                    if (cfg)
                     {
                         if (!config.skins.ContainsKey(s.shortname))
                         {
@@ -749,13 +772,59 @@ namespace Oxide.Plugins
                             config.skins[s.shortname].Add(category, new List<ulong>());
                         }
                         config.skins[s.shortname][category].Add(s.id);
+                        SaveConfig();
                     }
                 }
-                saveData();
-                if(cfg) SaveConfig();
-                OnSkinDataUpdated();
             };
             skinWebRequest(IDs, callback);
+        }
+
+        #endregion
+
+        #region steamworks api
+
+        public class tag_
+        {
+            public string tag;
+        }
+
+        public class publishedFile
+        {
+            public string publishedfileid;
+            public int result;
+            public string creator;
+            public ulong creator_app_id;
+            public ulong consumer_app_id;
+            public string filename;
+            public ulong file_size;
+            public string preview_url;
+            public string hcontent_preview;
+            public string title;
+            public string description;
+            public ulong time_created;
+            public ulong time_updated;
+            public int visibility;
+            public int banned;
+            public string ban_reason;
+            public int subscriptions;
+            public int favourited;
+            public int lifetime_subscriptions;
+            public int lifetime_favourited;
+            public uint views;
+            public List<tag_> tags;
+        }
+
+        public class steamAnswer
+        {
+            public int result;
+            public int resultcount;
+            public List<publishedFile> publishedfiledetails;
+
+        }
+
+        public class webResponse
+        {
+            public steamAnswer response;
         }
 
         private void skinWebRequest(List<ulong> IDs, Action<List<Skin>> callback)
@@ -783,7 +852,7 @@ namespace Oxide.Plugins
 #endif
                 if (answer?.response?.publishedfiledetails == null) return;
                 List<Skin> output = new List<Skin>();
-                foreach(publishedFile pf in answer.response.publishedfiledetails)
+                foreach (publishedFile pf in answer.response.publishedfiledetails)
                 {
 
                     string shortname = null;
@@ -796,48 +865,68 @@ namespace Oxide.Plugins
                         }
                     }
                     if (shortname == null) continue;
-                    Skin s = new Skin { name = pf.title, id = ulong.Parse(pf.publishedfileid), url = pf.preview_url , shortname = shortname};
+                    Skin s = new Skin(pf.title, null, shortname, ulong.Parse(pf.publishedfileid), pf.preview_url);
                     output.Add(s);
                 }
                 callback(output);
             }, this, RequestMethod.POST);
         }
 
-        public void sendSkinImg(BasePlayer player, string url, string name, Rectangle rectangle, string parent = null)
-        {
-            player.ChatMessage($"sending img {name}");
-            Action callback = () =>
-            {
-                GuiContainer container = new GuiContainer(pluginInstance, $"skinimg_{name}", parent);
-                container.addRawImage($"img_{name}", rectangle, ImageLibrary.Call<string>("GetImage", name), "Hud");
-                container.display(player);
-            };
-            if(ImageLibrary.Call<bool>("HasImage", name, (ulong)0)) 
-            {
-                callback();
-            }
-            else ImageLibrary.Call<bool>("AddImage", url, name, (ulong)0, callback);
-
-        }
-
         #endregion
 
         #region data management
-        private class StoredData
+        private class Data
         {
-            public List<Skin> skins = new List<Skin>();
+            public List<Skinnable> items = new List<skinit.Skinnable>();
 
-            public StoredData()
+            public Data()
             {
             }
 
-            public bool containsSkin(ulong id)
+            public Skinnable GetSkinnable(string shortname)
             {
-                foreach(Skin s in skins)
+                foreach(Skinnable item in items)
                 {
-                    if (s.id == id) return true;
+                    if (item.shortname == shortname) return item;
                 }
-                return false;
+                return null;
+            }
+
+            public Category GetCategory(Skinnable item, string name)
+            {
+                foreach(Category category in item.categories)
+                {
+                    if (category.name == name) return category;
+                }
+                return null;
+            }
+
+            public Skin GetSkin(Skinnable item, ulong id)
+            {
+                foreach(Category category in item.categories)
+                {
+                    Skin skin = GetSkin(category, id);
+                    if (skin != null) return skin;
+                }
+                return null;
+            }
+
+            public Skin GetSkin(Category category, ulong id)
+            {
+                foreach(Skin skin in category.skins)
+                {
+                    if (skin.id == id) return skin;
+                }
+                return null;
+            }
+            public Skin GetSkin(ulong id)
+            {
+                foreach(Skinnable item in items)
+                {
+                    Skin skin = GetSkin(item, id);
+                    if (skin != null) return skin;
+                }
+                return null;
             }
         }
 
@@ -845,7 +934,7 @@ namespace Oxide.Plugins
         {
             try
             {
-                File.WriteObject(storedData);
+                File.WriteObject(data);
             }
             catch (Exception E)
             {
@@ -857,7 +946,7 @@ namespace Oxide.Plugins
         {
             try
             {
-                storedData = File.ReadObject<StoredData>();
+                data = File.ReadObject<Data>();
             }
             catch (Exception E)
             {

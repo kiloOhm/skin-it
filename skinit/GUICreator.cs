@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("GUICreator", "OHM", "1.2.2")]
+    [Info("GUICreator", "OHM", "1.2.3")]
     [Description("GUICreator")]
     internal class GUICreator : RustPlugin
     {
@@ -682,9 +682,9 @@ namespace Oxide.Plugins
             container.display(player);
         }
 
-        public void registerImage(Plugin plugin, string name, string url)
+        public void registerImage(Plugin plugin, string name, string url, Action callback = null)
         {
-            ImageLibrary.Call("AddImage", url, $"{plugin.Name}_{name}");
+            ImageLibrary.Call("AddImage", url, $"{plugin.Name}_{name}", (ulong)0, callback);
 #if DEBUG
             PrintToChat($"{plugin.Name} registered {name} image");
 #endif
@@ -854,28 +854,42 @@ namespace Oxide.Plugins
                 PrintToChat(player, lang.GetMessage("noPermission", this, player.UserIDString));
                 return;
             }
-            GuiContainer container = new GuiContainer(this, "imgPreview");
-
-            container.addRawImage("img", new Rectangle(710, 290, 500, 500, 1920, 1080, true), ImageLibrary.Call<string>("GetImage", args[0]), GUICreator.GuiContainer.Layer.hud);
-            container.addPlainButton("close", new Rectangle(0.15f, 0.15f, 0.1f, 0.1f), new GuiColor(1, 0, 0, 0.8f), 0, 0, new GuiText("close"));
-            container.display(player);
+            imgPreview(player, args[0]);
         }
 
-        [ChatCommand("registerimg")]
-        private void imgRegisterCommand(BasePlayer player, string command, string[] args)
+        public void imgPreview(BasePlayer player, string url)
+        {
+            Action callback = () =>
+            {
+                Rectangle rectangle = new Rectangle(710, 290, 500, 500, 1920, 1080, true);
+                GuiContainer container = new GuiContainer(PluginInstance, $"imgPreview");
+                container.addRawImage($"img", rectangle, ImageLibrary.Call<string>("GetImage", $"GUICreator_preview_{url}"), "Hud");
+                container.addPlainButton("close", new Rectangle(0.15f, 0.15f, 0.1f, 0.1f), new GuiColor(1, 0, 0, 0.8f), 0, 0, new GuiText("close"));
+                container.display(player);
+            };
+            if (ImageLibrary.Call<bool>("HasImage", $"GUICreator_preview_{url}", (ulong)0))
+            {
+                callback();
+            }
+            else ImageLibrary.Call<bool>("AddImage", url, $"GUICreator_preview_{url}", (ulong)0, callback);
+
+        }
+
+        [ChatCommand("imgraw")]
+        private void imgrawPreviewCommand(BasePlayer player, string command, string[] args)
         {
             if (!permission.UserHasPermission(player.UserIDString, "gui.demo"))
             {
                 PrintToChat(player, lang.GetMessage("noPermission", this, player.UserIDString));
                 return;
             }
-            try
-            {
-                ImageLibrary.Call("AddImage", args[1], args[0]);
-                player.ChatMessage($"registered {args[0]}");
-            }
-            catch (Exception e) { }
+            GuiContainer container = new GuiContainer(this, "imgPreview");
+
+            container.addRawImage("img", new Rectangle(710, 290, 500, 500, 1920, 1080, true), args[0], GUICreator.GuiContainer.Layer.hud);
+            container.addPlainButton("close", new Rectangle(0.15f, 0.15f, 0.1f, 0.1f), new GuiColor(1, 0, 0, 0.8f), 0, 0, new GuiText("close"));
+            container.display(player);
         }
+
 
         #endregion commands
 
