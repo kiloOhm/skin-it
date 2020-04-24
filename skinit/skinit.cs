@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using UnityEngine;
 using static Oxide.Plugins.GUICreator;
 
@@ -681,7 +682,7 @@ namespace Oxide.Plugins
                 IDs.Add(ulong.Parse(args[i]));
             }
             addSkins(IDs, (category == null)?"main":args[0]);
-             return $"added {IDs.Count} skins";
+             return $"adding {IDs.Count} {((IDs.Count == 1)?"skin":"skins")}";
         }
 
         private void testCommand(BasePlayer player, string command, string[] args)
@@ -736,20 +737,20 @@ namespace Oxide.Plugins
 
         private void addSkins(List<ulong> IDs, string category, bool cfg = true)
         {
-            Action<List<Skin>> callback = (skins) =>
+            foreach(ulong ID in IDs)
             {
-                foreach(Skin s in skins)
+                Action<Skin> callback = (s) =>
                 {
                     s.category = category;
 
                     Skinnable item = data.GetSkinnable(s.shortname);
-                    if(item == null)
+                    if (item == null)
                     {
                         item = new Skinnable(s.shortname);
                         data.items.Add(item);
                     }
                     Category cat = data.GetCategory(item, s.category);
-                    if(cat == null)
+                    if (cat == null)
                     {
                         cat = new Category(s.category, s.shortname);
                         item.categories.Add(cat);
@@ -767,16 +768,16 @@ namespace Oxide.Plugins
                         {
                             config.skins.Add(s.shortname, new Dictionary<string, List<ulong>>());
                         }
-                        if(!config.skins[s.shortname].ContainsKey(category))
+                        if (!config.skins[s.shortname].ContainsKey(category))
                         {
                             config.skins[s.shortname].Add(category, new List<ulong>());
                         }
                         config.skins[s.shortname][category].Add(s.id);
                         SaveConfig();
                     }
-                }
-            };
-            skinWebRequest(IDs, callback);
+                };
+                skinWebRequest(ID, callback);
+            }
         }
 
         #endregion
@@ -827,48 +828,53 @@ namespace Oxide.Plugins
             public steamAnswer response;
         }
 
-        private void skinWebRequest(List<ulong> IDs, Action<List<Skin>> callback)
+        private void skinWebRequest(ulong ID, Action<Skin> callback)
         {
-            if (IDs.Count < 1) return;
-
-            StringBuilder bodySB = new StringBuilder();
-            int i = 0;
-            foreach (ulong id in IDs)
-            {
-                bodySB.Append($"&publishedfileids%5B{i}%5D={id}");
-                i++;
-            }
-            string body = $"itemcount={IDs.Count}{bodySB}";
+            string body = $"itemcount=1&publishedfileids%5B0%5D={ID}";
             webrequest.Enqueue("https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/", body, (code, response) =>
             {
+#if DEBUG
+                Puts($"Response code: {code}");
+#endif
                 if (code != 200 || response == null)
                 {
-                    Puts($"Coudn't get skin info!");
+                    Puts($"Coudn't get skin info for ID {ID}!");
                     return;
                 }
                 webResponse answer = JsonConvert.DeserializeObject<webResponse>(response);
-#if DEBUG
-                Puts($"getting skin info: {(answer?.response?.publishedfiledetails[0]?.title) ?? "null"}");
-#endif
-                if (answer?.response?.publishedfiledetails == null) return;
-                List<Skin> output = new List<Skin>();
-                foreach (publishedFile pf in answer.response.publishedfiledetails)
+                if (answer?.response?.publishedfiledetails == null)
                 {
-
-                    string shortname = null;
-                    foreach (tag_ t in pf.tags)
-                    {
-                        if (shortnames.ContainsKey(t.tag))
-                        {
-                            shortname = shortnames[t.tag];
-                            break;
-                        }
-                    }
-                    if (shortname == null) continue;
-                    Skin s = new Skin(pf.title, null, shortname, ulong.Parse(pf.publishedfileid), pf.preview_url);
-                    output.Add(s);
+                    Puts("answer is null");
+                    return;
                 }
-                callback(output);
+                if(answer.response.publishedfiledetails[0]?.title == null)
+                {
+                    Puts($"Skin ID {ID} doesn't exist!");
+                    return;
+                }
+                Puts($"got skin info: {(answer.response.publishedfiledetails[0].title)} for ID {ID}!");
+                if (answer.response.publishedfiledetails.Count < 1)
+                {
+                    Puts("0 publishedfiledetails in response!");
+                    return;
+                }
+                publishedFile pf = answer.response.publishedfiledetails[0];
+                string shortname = null;
+                foreach (tag_ t in pf.tags)
+                {
+                    if (shortnames.ContainsKey(t.tag))
+                    {
+                        shortname = shortnames[t.tag];
+                        break;
+                    }
+                }
+                if (shortname == null)
+                {
+                    Puts("no shortname found in publishedfiledetails!");
+                    return;
+                }
+                Skin s = new Skin(pf.title, null, shortname, ulong.Parse(pf.publishedfileid), pf.preview_url);
+                callback(s);
             }, this, RequestMethod.POST);
         }
 
