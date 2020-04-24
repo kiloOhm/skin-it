@@ -264,6 +264,7 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "availableSkinsPanel", "https://i.imgur.com/ZhArsw3.png");
             guiCreator.registerImage(this, "previewPanel", "https://i.imgur.com/MrTYRlK.png");
             guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
+            guiCreator.registerImage(this, "sad", "https://s3.amazonaws.com/pix.iemoji.com/images/emoji/apple/ios-12/256/loudly-crying-face.png");
 
             //lang
             lang.RegisterMessages(messages, this);
@@ -369,7 +370,6 @@ namespace Oxide.Plugins
             containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 20, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
-            containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)));
 #if DEBUG
             //keeping this here for debugging purposes.
             // containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(1, 0, 0, 0.5f), FadeIn, FadeOut, new GuiText(""));
@@ -377,15 +377,40 @@ namespace Oxide.Plugins
             containerGUI.display(container.player);
 
             List<string> testList = new List<string> { "Western", "Space", "Medical", "Chemists", "Christmas", "Naughty" };
-            List<string> picturesList = new List<string> {"smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", };
+            List<string> picturesList = new List<string> {"smile", "sad", "smile", "sad", "smile", "smile", "sad", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile" };
             categories(container.player, testList);
             List<List<string>> ListOfLists = SplitIntoChunks<string>(picturesList, 30);
             panelOneBackground(container.player);
             panelOne(container.player, ListOfLists);
-
+            skinitButton(container.player);
 
         }
 
+        public void skinitButton(BasePlayer player, int activeSkin = 0, bool skinSelected = false, bool successSkin = false, bool attempt = false)
+        {
+            Action<BasePlayer, string[]> Skinit = (bPlayer, input) =>
+            {
+                skinitButton(player, 0, skinSelected = false, successSkin = false, attempt = true);
+
+            };
+            GuiContainer containerGUI = new GuiContainer(this, "skinitButton", "background");
+
+            if (successSkin == true) {} // If the username entered matches a username in Userlogin();
+            else if (attempt == true) // If the username entered DOES NOT match a username in Userlogin(), but there has been an attempt;
+            {
+                containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO SKIN SELECTED!", 30, new GuiColor(162, 51, 46, 0.8f)));
+                timer.Once(1f, () => // After a second launch panelOne again with default parameters
+                {
+                    skinitButton(player, 0, skinSelected = false, successSkin = false, attempt = false);
+                });
+            }
+            else // The initial state when panelOne is launched;
+            {
+        containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)),Skinit);
+            }
+        containerGUI.display(player);
+        }
+    
         /// <summary>
         /// Splits a <see cref="List{T}"/> into multiple chunks.
         /// </summary>
@@ -414,11 +439,8 @@ namespace Oxide.Plugins
         }
 
 
-        public void panelOneBackground(BasePlayer player)
+        public void panelOneBackground(BasePlayer player) // also background for preview panel
         {
-
-
-
             GuiContainer containerGUI = new GuiContainer(this, "panelOneBackground", "background");
             containerGUI.addImage("availableSkinsPanel", new Rectangle(452, 32, 1021, 451, 1920, 1080, true), "availableSkinsPanel", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
             containerGUI.addImage("previewPanel", new Rectangle(1492, 32, 389, 451, 1920, 1080, true), "previewPanel", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
@@ -446,12 +468,18 @@ namespace Oxide.Plugins
             int i = 0;
             foreach(string s in picturesList)
             {
-                if(i<picturesEachRow)
+                int index = i;
+                Action<BasePlayer, string[]> callback = (bPlayer, input) =>
+                {
+                    panelOne(player, picturesListOfLists, activePicture = index, page);
+                    previewPanel(player, picturesListOfLists, activePicture = index, page);
+                };
+                if (i<picturesEachRow)
                 {
                     xSpacing = OriginX + (widthEach * i);
                     OriginY = OriginY1;
                     containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), picturesList[i], GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
 
                 }
@@ -460,7 +488,7 @@ namespace Oxide.Plugins
                     xSpacing = (OriginX + (widthEach * i))-(widthEach*picturesEachRow);
                     OriginY = OriginY2;
                     containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), picturesList[i], GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
                 }
                 else if (i<totalPictures)
@@ -468,22 +496,25 @@ namespace Oxide.Plugins
                     xSpacing = (OriginX + (widthEach * i)) - ((widthEach * picturesEachRow)*2);
                     OriginY = OriginY3;
                     containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), picturesList[i], GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
                 }
                 i++;
             }
-            int index = i;
+            
             Action<BasePlayer, string[]> GoRight = (bPlayer, input) =>
             {
                 if (page == picturesListOfLists.Count-1)
                 {
                     page = 0;
                     panelOne(player, picturesListOfLists, activePicture = 0, page);
+                    previewPanel(player, picturesListOfLists, activePicture = 0, page);
+
                 } else
                 {
                     page += 1;
                     panelOne(player, picturesListOfLists, activePicture = 0, page);
+                    previewPanel(player, picturesListOfLists, activePicture = 0, page);
                 }
                 };
             Action<BasePlayer, string[]> GoLeft = (bPlayer, input) =>
@@ -492,16 +523,32 @@ namespace Oxide.Plugins
                 {
                     page = picturesListOfLists.Count-1;
                     panelOne(player, picturesListOfLists, activePicture = 0, page);
+                    previewPanel(player, picturesListOfLists, activePicture = 0, page);
                 } else
                 {
                     page -= 1;
                     panelOne(player, picturesListOfLists, activePicture = 0, page);
+                    previewPanel(player, picturesListOfLists, activePicture = 0, page);
                 }
                 };
-            containerGUI.addPlainButton("goRight", new Rectangle(1437, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(">>", 25, new GuiColor(255, 255, 255, 0.8f)),GoRight);
-            containerGUI.addPlainButton("goLeft", new Rectangle(431, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("<<", 25, new GuiColor(255, 255, 255, 0.8f)), GoLeft);
+            if (picturesListOfLists.Count > 1)
+            {
+                containerGUI.addPlainButton("goRight", new Rectangle(1437, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(">>", 25, new GuiColor(255, 255, 255, 0.8f)), GoRight);
+                containerGUI.addPlainButton("goLeft", new Rectangle(431, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("<<", 25, new GuiColor(255, 255, 255, 0.8f)), GoLeft);
+            }
+
             containerGUI.display(player);
 
+        }
+
+
+        public void previewPanel(BasePlayer player, List<List<string>> picturesListOfLists, int activePicture = 0,int page = 0)
+        {
+            GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "background");
+            List<string> picturesList = picturesListOfLists[page];
+            containerGUI.addImage("previewPicture", new Rectangle(1520, 66, 332, 333, 1920, 1080, true), picturesList[activePicture], GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
+            containerGUI.addPanel("previewPictureText", new Rectangle(1501, 399, 371, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{picturesList[activePicture]}", 20, new GuiColor(255, 255, 255, 0.5f)));
+            containerGUI.display(player);
         }
         // BEGIN CATEGORIES
         public void categories(BasePlayer player, List<string> categoriesList, int activeCategory = 0)
