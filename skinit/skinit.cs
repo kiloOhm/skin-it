@@ -420,6 +420,7 @@ namespace Oxide.Plugins
 #if DEBUG
             PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
+            container.item = item;
             List<Skin> availableSkins = getSkins(item.info.shortname);
 
             GuiContainer guiContainer = new GuiContainer(this, "skinsTest", "background");
