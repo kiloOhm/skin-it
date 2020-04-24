@@ -19,7 +19,7 @@ using static Oxide.Plugins.GUICreator;
 
 namespace Oxide.Plugins
 {
-    [Info("skinit", "Ohm & Bunsen", "0.1.0")]
+    [Info("skinit", "Ohm & Bunsen", "0.2.0")]
     [Description("GUI based Item skinning")]
     class skinit : RustPlugin
     {
@@ -372,45 +372,62 @@ namespace Oxide.Plugins
             containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 20, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
-#if DEBUG
-            //keeping this here for debugging purposes.
-            // containerGUI.addPlainButton("close", new Rectangle(1827, 30, 64, 64, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(1, 0, 0, 0.5f), FadeIn, FadeOut, new GuiText(""));
-#endif
             containerGUI.display(container.player);
-
-            List<string> testList = new List<string> { "Western", "Space", "Medical", "Chemists", "Christmas", "Naughty" };
-            List<string> picturesList = new List<string> {"smile", "sad", "smile", "sad", "smile", "smile", "sad", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "sad", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile", "smile" };
-            categories(container.player, testList);
-            List<List<string>> ListOfLists = SplitIntoChunks<string>(picturesList, 30);
             panelOneBackground(container.player);
-            panelOne(container.player, ListOfLists);
-            skinitButton(container.player);
+            skinitButton(container);
 
         }
 
-        public void skinitButton(BasePlayer player, int activeSkin = 0, bool skinSelected = false, bool successSkin = false, bool attempt = false)
+        public void skinitButton(virtualContainer container, Skin activeSkin = null, Item item = null, bool success = false, bool failure = false, bool attempt = false)
         {
+            BasePlayer player = container.player;
             Action<BasePlayer, string[]> Skinit = (bPlayer, input) =>
             {
-                skinitButton(player, 0, skinSelected = false, successSkin = false, attempt = true);
+                if(activeSkin == null || item == null)
+                {
+                    skinitButton(container, attempt: true);
+                }
+                if(buySkin(container, item, activeSkin))
+                {
+                    skinitButton(container, success: true);
+                }
+                else
+                {
+                    skinitButton(container, failure: true);
+                }
 
             };
             GuiContainer containerGUI = new GuiContainer(this, "skinitButton", "background");
 
-            if (successSkin == true) {} // If the username entered matches a username in Userlogin();
-            else if (attempt == true) // If the username entered DOES NOT match a username in Userlogin(), but there has been an attempt;
+            if (success) 
             {
-                containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO SKIN SELECTED!", 30, new GuiColor(162, 51, 46, 0.8f)));
+                containerGUI.addPlainButton("checkout_success", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SUCCESS", 30, new GuiColor(134, 190, 41, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
-                    skinitButton(player, 0, skinSelected = false, successSkin = false, attempt = false);
+                    skinitButton(container);
+                });
+            }
+            else if (failure) 
+            {
+                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU CAN'T BUY THIS SKIN", 30, new GuiColor(162, 51, 46, 0.8f)));
+                timer.Once(1f, () => // After a second launch panelOne again with default parameters
+                {
+                    skinitButton(container);
+                });
+            }
+            else if (attempt)
+            {
+                containerGUI.addPlainButton("checkout_attempt", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO SKIN SELECTED!", 30, new GuiColor(162, 51, 46, 0.8f)));
+                timer.Once(1f, () => // After a second launch panelOne again with default parameters
+                {
+                    skinitButton(container);
                 });
             }
             else // The initial state when panelOne is launched;
             {
-        containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)),Skinit);
+                containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)), Skinit);
             }
-        containerGUI.display(player);
+            containerGUI.display(player);
         }
     
         public static List<List<T>> SplitIntoChunks<T>(List<T> list, int chunkSize = 30)
@@ -442,7 +459,8 @@ namespace Oxide.Plugins
             containerGUI.addPanel("availableSkinsPanelText", new Rectangle(696, 0, 534, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("AVAILABLE SKINS", 30, new GuiColor(255, 255, 255, 0.5f)));
             containerGUI.display(player);
         }
-        public void panelOne(BasePlayer player, List<List<string>> picturesListOfLists, int activePicture = 0, int page=0)
+
+        public void panelOne(BasePlayer player, Item item, List<List<Skin>> skinListOfLists, int activeSkin = 0, int page=0)
         {
             double OriginX = 487;
             double xSpacing;
@@ -457,22 +475,23 @@ namespace Oxide.Plugins
             int totalPictures = picturesEachRow * numberOfRows;
             double widthEach = maximumWidth / picturesEachRow;
 
-            List<string> picturesList = picturesListOfLists[page];
-            GuiContainer containerGUI = new GuiContainer(this, "panelOne", "background");
+            List<Skin> skinList = skinListOfLists[page];
+            GuiContainer containerGUI = new GuiContainer(this, "panelOne", "categories");
             int i = 0;
-            foreach(string s in picturesList)
+            foreach(Skin s in skinList)
             {
                 int index = i;
                 Action<BasePlayer, string[]> callback = (bPlayer, input) =>
                 {
-                    panelOne(player, picturesListOfLists, activePicture = index, page);
-                    previewPanel(player, picturesListOfLists, activePicture = index, page);
+                    panelOne(player, item, skinListOfLists, activeSkin = index, page);
+                    previewPanel(bPlayer, skinList[index]);
+                    skinitButton(virtualContainer.find(player), skinList[index], item);
                 };
                 if (i<picturesEachRow)
                 {
                     xSpacing = OriginX + (widthEach * i);
                     OriginY = OriginY1;
-                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), picturesList[i], GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
                     containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
 
@@ -481,7 +500,7 @@ namespace Oxide.Plugins
                 {
                     xSpacing = (OriginX + (widthEach * i))-(widthEach*picturesEachRow);
                     OriginY = OriginY2;
-                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), picturesList[i], GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
                     containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
                 }
@@ -489,7 +508,7 @@ namespace Oxide.Plugins
                 {
                     xSpacing = (OriginX + (widthEach * i)) - ((widthEach * picturesEachRow)*2);
                     OriginY = OriginY3;
-                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), picturesList[i], GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
                     containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
                 }
@@ -498,34 +517,30 @@ namespace Oxide.Plugins
             
             Action<BasePlayer, string[]> GoRight = (bPlayer, input) =>
             {
-                if (page == picturesListOfLists.Count-1)
+                if (page == skinListOfLists.Count-1)
                 {
                     page = 0;
-                    panelOne(player, picturesListOfLists, activePicture = 0, page);
-                    previewPanel(player, picturesListOfLists, activePicture = 0, page);
+                    panelOne(player, item, skinListOfLists, activeSkin = 0, page);
 
                 } else
                 {
                     page += 1;
-                    panelOne(player, picturesListOfLists, activePicture = 0, page);
-                    previewPanel(player, picturesListOfLists, activePicture = 0, page);
+                    panelOne(player, item, skinListOfLists, activeSkin = 0, page);
                 }
                 };
             Action<BasePlayer, string[]> GoLeft = (bPlayer, input) =>
             {
                 if (page == 0)
                 {
-                    page = picturesListOfLists.Count-1;
-                    panelOne(player, picturesListOfLists, activePicture = 0, page);
-                    previewPanel(player, picturesListOfLists, activePicture = 0, page);
+                    page = skinListOfLists.Count-1;
+                    panelOne(player, item, skinListOfLists, activeSkin = 0, page);
                 } else
                 {
                     page -= 1;
-                    panelOne(player, picturesListOfLists, activePicture = 0, page);
-                    previewPanel(player, picturesListOfLists, activePicture = 0, page);
+                    panelOne(player, item, skinListOfLists, activeSkin = 0, page);
                 }
                 };
-            if (picturesListOfLists.Count > 1)
+            if (skinListOfLists.Count > 1)
             {
                 containerGUI.addPlainButton("goRight", new Rectangle(1437, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(">>", 25, new GuiColor(255, 255, 255, 0.8f)), GoRight);
                 containerGUI.addPlainButton("goLeft", new Rectangle(431, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("<<", 25, new GuiColor(255, 255, 255, 0.8f)), GoLeft);
@@ -535,16 +550,15 @@ namespace Oxide.Plugins
 
         }
 
-        public void previewPanel(BasePlayer player, List<List<string>> picturesListOfLists, int activePicture = 0,int page = 0)
+        public void previewPanel(BasePlayer player, Skin skin)
         {
-            GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "background");
-            List<string> picturesList = picturesListOfLists[page];
-            containerGUI.addImage("previewPicture", new Rectangle(1520, 66, 332, 333, 1920, 1080, true), picturesList[activePicture], GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
-            containerGUI.addPanel("previewPictureText", new Rectangle(1501, 399, 371, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{picturesList[activePicture]}", 20, new GuiColor(255, 255, 255, 0.5f)));
+            GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "categories");
+            containerGUI.addImage("previewPicture", new Rectangle(1520, 66, 332, 333, 1920, 1080, true), skin.safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
+            containerGUI.addPanel("previewPictureText", new Rectangle(1501, 399, 371, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skin.name}", 20, new GuiColor(255, 255, 255, 0.5f)));
             containerGUI.display(player);
         }
-        // BEGIN CATEGORIES
-        public void categories(BasePlayer player, List<string> categoriesList, int activeCategory = 0)
+        
+        public void sendCategories(BasePlayer player, Item item, List<Category> categoriesList, int activeCategory = 0)
         {
             double OriginY = 494;
             double Height = 46;
@@ -555,26 +569,33 @@ namespace Oxide.Plugins
 
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
             int i = 0;
-            foreach(string s in categoriesList)
+            foreach(Category Cat in categoriesList)
             {
                 double xSpacing = OriginX + (widthEach * i);
                 int index = i;
                 Action<BasePlayer, string[]> callback = (bPlayer, input) =>
                 {
-                    categories(bPlayer, categoriesList, index);
+                    sendCategories(bPlayer, item, categoriesList, index);
                 };
                 if (i == activeCategory)
                 {
-                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(s.ToUpper(), fontSize, new GuiColor(134, 190, 41, 0.8f)), callback);
+                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(134, 190, 41, 0.8f)), callback);
                 }
                 else
                 {
-                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(s.ToUpper(), fontSize, new GuiColor(255, 255, 255, 0.8f)), callback);
+                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(255, 255, 255, 0.8f)), callback);
                 }
                 i++;
             }
             containerGUI.display(player);
+            sendSkins(player, item, categoriesList[activeCategory]);
 
+        }
+
+        public void sendSkins(BasePlayer player, Item item, Category category)
+        {
+            List<List<Skin>> ListOfLists = SplitIntoChunks<Skin>(category.skins, 30);
+            panelOne(player, item, ListOfLists);
         }
 
         public void closeUI(virtualContainer container)
@@ -590,26 +611,16 @@ namespace Oxide.Plugins
 #if DEBUG
             PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
-            //container.item = item;
-            //List<Skin> availableSkins = getSkins(item.info.shortname);
-
-            //GuiContainer guiContainer = new GuiContainer(this, "skinsTest", "background");
-            //int i = 0;
-            //foreach(Skin s in availableSkins)
-            //{
-            //    Rectangle pos = new Rectangle(534 + (i * 110), 221, 100, 100, 1920, 1080, true);
-            //    guiContainer.addImage($"img_{s.safename}", pos, s.safename, GuiContainer.Layer.menu, null, FadeIn, FadeOut);
-            //    Skin selected = s;
-            //    Action<BasePlayer, string[]> callback = (bPlayer, input) =>
-            //    {
-            //        bPlayer.ChatMessage($"skinning {selected.name}");
-            //        Item newItem = applySkin(container, item, selected.id);
-            //        onItemInserted(container, newItem);
-            //    };
-            //    guiContainer.addPlainButton($"btn_{s.safename}", new Rectangle(), null, FadeIn, FadeOut, callback: callback, parent: $"img_{s.safename}");
-            //    i++;
-            //}
-            //guiContainer.display(container.player);
+            if (!canSkin(item)) return;
+            Skinnable skinnable = data.GetSkinnable(item.info.shortname);
+            if(skinnable == null)
+            {
+#if DEBUG
+                container.player.ChatMessage($"skinnable for {item.info.shortname} not found");
+#endif
+                return;
+            }
+            sendCategories(container.player, item, GetCategories(skinnable));
         }
 
         private void onItemRemoved(virtualContainer container, Item item)
@@ -617,7 +628,7 @@ namespace Oxide.Plugins
 #if DEBUG
             PrintToChat($"OnItemRemoved: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
-            GuiTracker.getGuiTracker(container.player).destroyGui(this, "skinsTest");
+            GuiTracker.getGuiTracker(container.player).destroyGui(this, "categories");
         }
 
         #endregion
@@ -690,14 +701,12 @@ namespace Oxide.Plugins
 #if DEBUG
             player.ChatMessage("testing");
 #endif
-            List<string> testList = new List<string> { "entry1", "entry2", "entry3" };
-            categories(player, testList);
         }
         #endregion
 
         #region helpers
 
-        public Item applySkin( virtualContainer container, Item item, ulong skinID)
+        public Item applySkin(virtualContainer container, Item item, ulong skinID)
         {
             Item newItem = ItemManager.Create(item.info, item.amount, skinID);
             List<Item> contentBackup = new List<Item>();
@@ -772,12 +781,34 @@ namespace Oxide.Plugins
                         {
                             config.skins[s.shortname].Add(category, new List<ulong>());
                         }
-                        config.skins[s.shortname][category].Add(s.id);
+                        if(!config.skins[s.shortname][category].Contains(s.id)) config.skins[s.shortname][category].Add(s.id);
                         SaveConfig();
                     }
                 };
                 skinWebRequest(ID, callback);
             }
+        }
+
+        private bool canSkin(Item item)
+        {
+            return true;
+        }
+
+        private bool buySkin(virtualContainer container, Item item, Skin skin)
+        {
+            applySkin(container, item, skin.id);
+            return true;
+        }
+
+        private List<Category> GetCategories(Skinnable item)
+        {
+            if (item == null) return null;
+            List<Category> output = new List<skinit.Category>();
+            foreach(Category cat in item.categories)
+            {
+                output.Add(cat);
+            }
+            return output;
         }
 
         #endregion
