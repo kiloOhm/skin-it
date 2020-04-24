@@ -552,7 +552,7 @@ namespace Oxide.Plugins
 
         public void previewPanel(BasePlayer player, Skin skin)
         {
-            GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "categories");
+            GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "panelOne");
             containerGUI.addImage("previewPicture", new Rectangle(1520, 66, 332, 333, 1920, 1080, true), skin.safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
             containerGUI.addPanel("previewPictureText", new Rectangle(1501, 399, 371, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skin.name}", 20, new GuiColor(255, 255, 255, 0.5f)));
             containerGUI.display(player);
@@ -796,7 +796,8 @@ namespace Oxide.Plugins
 
         private bool buySkin(virtualContainer container, Item item, Skin skin)
         {
-            applySkin(container, item, skin.id);
+            Item newItem = applySkin(container, item, skin.id);
+            onItemInserted(container, newItem);
             return true;
         }
 
@@ -997,7 +998,7 @@ namespace Oxide.Plugins
 
         private class ConfigData
         {
-            [JsonProperty(PropertyName = "Allow Pos Command")]
+            [JsonProperty(PropertyName = "Skins")]
             public Dictionary<string, Dictionary<string, List<ulong>>> skins;
 
         }
