@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+// using TMPro;
 using UnityEngine;
 using static Oxide.Plugins.GUICreator;
 
@@ -280,6 +281,15 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "Text_1", "https://i.imgur.com/mirJ3cR.png");
             guiCreator.registerImage(this, "availableSkinsPanel", "https://i.imgur.com/ZhArsw3.png");
             guiCreator.registerImage(this, "previewPanel", "https://i.imgur.com/MrTYRlK.png");
+            guiCreator.registerImage(this, "button_ADD", "https://i.imgur.com/tbqAmyU.png");
+            guiCreator.registerImage(this, "button_CHECK", "https://i.imgur.com/8f81Ave.png");
+            guiCreator.registerImage(this, "button_CATEGORIES", "https://i.imgur.com/nvKQode.png");
+            guiCreator.registerImage(this, "button_RENAME", "https://i.imgur.com/Jh3QKSH.png");
+            guiCreator.registerImage(this, "button_REMOVE", "https://i.imgur.com/2a5zp68.png");
+            guiCreator.registerImage(this, "popup_REMOVE", "https://i.imgur.com/ewo1fFE.png");
+            guiCreator.registerImage(this, "popup_CATEGORIES", "https://i.imgur.com/tUjpJ5T.png");
+            guiCreator.registerImage(this, "popup_RENAME", "https://i.imgur.com/smEo4kf.png");
+
             guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
             guiCreator.registerImage(this, "sad", "https://s3.amazonaws.com/pix.iemoji.com/images/emoji/apple/ios-12/256/loudly-crying-face.png");
 
@@ -380,7 +390,10 @@ namespace Oxide.Plugins
             containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
             containerGUI.display(container.player);
             panelOneBackground(container.player);
+            buttonsRight(container.player);
+            buttonsLeft(container.player);
             skinitButton(container);
+
 
         }
 
@@ -482,6 +495,12 @@ namespace Oxide.Plugins
             containerGUI.display(player);
         }
 
+        public void destroyPopups(BasePlayer player)
+        {
+            GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "popupRename");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
+        }
         public void panelOne(BasePlayer player, Item item, List<List<Skin>> skinListOfLists, int activeSkin = 0, int page=0)
         {
             double OriginX = 487;
@@ -508,6 +527,7 @@ namespace Oxide.Plugins
                     panelOne(player, item, skinListOfLists, activeSkin = index, page);
                     previewPanel(bPlayer, item, skinList[index]);
                     skinitButton(virtualContainer.find(player), skinList[index], item);
+                    destroyPopups(player);
                 };
                 if (i<picturesEachRow)
                 {
@@ -543,11 +563,13 @@ namespace Oxide.Plugins
                 {
                     page = 0;
                     panelOne(player, item, skinListOfLists, activeSkin = 0, page);
+                    destroyPopups(player);
 
                 } else
                 {
                     page += 1;
                     panelOne(player, item, skinListOfLists, activeSkin = 0, page);
+                    destroyPopups(player);
                 }
                 };
             Action<BasePlayer, string[]> GoLeft = (bPlayer, input) =>
@@ -556,10 +578,12 @@ namespace Oxide.Plugins
                 {
                     page = skinListOfLists.Count-1;
                     panelOne(player, item, skinListOfLists, activeSkin = 0, page);
+                    destroyPopups(player);
                 } else
                 {
                     page -= 1;
                     panelOne(player, item, skinListOfLists, activeSkin = 0, page);
+                    destroyPopups(player);
                 }
                 };
             if (skinListOfLists.Count > 1)
@@ -622,6 +646,149 @@ namespace Oxide.Plugins
             panelOne(player, item, ListOfLists);
         }
 
+        public void buttonsRight(BasePlayer player) // Creates buttons for staff only to see when clicking on an item
+        {
+            bool isStaff = true; // placeholder
+            bool isActiveCategories = false;
+            bool isActiveRename = false;
+            bool isActiveRemove = false;
+            if (isStaff == true)
+            {
+                GuiContainer containerGUI = new GuiContainer(this, "buttonsRight", "background");
+
+                // Function when you click the remove button
+                Action<BasePlayer, string[]> removeSkin = (bPlayer, input) =>
+                {
+                    if(isActiveRemove == true)
+                    {
+                        popupRemove(player, isActiveRemove = true);
+                        isActiveRemove = false;
+                        PrintToChat("debug2");
+                    } else
+                    {
+                        popupRemove(player, isActiveRemove = false);
+                        isActiveRemove = true;
+                        isActiveRename = false;
+                        isActiveCategories = false;
+                        PrintToChat("debug1");
+                    }
+                };
+                // Function when you click the rename button
+                Action<BasePlayer, string[]> renameSkin = (bPlayer, input) =>
+                {
+                    if (isActiveRename == true)
+                    {
+                        popupRename(player, isActiveRename = true);
+                        isActiveRename = false;
+                    }
+                    else
+                    {
+                        popupRename(player, isActiveRename = false);
+                        isActiveRename = true;
+                        isActiveCategories = false;
+                        isActiveRemove = false;
+                    }
+                };
+                // Function when you click the categories button
+                Action<BasePlayer, string[]> categorySkin = (bPlayer, input) =>
+                {
+                    if (isActiveCategories == true)
+                    {
+                        popupCategories(player, isActiveCategories = true);
+                        isActiveCategories = false;
+                    }
+                    else
+                    {
+                        popupCategories(player, isActiveCategories = false);
+                        isActiveCategories = true;
+                        isActiveRemove = false;
+                        isActiveRename = false;
+                    }
+                };
+
+                // Button to change category of skin
+                containerGUI.addImage("categories_image", new Rectangle(1539, 351, 67, 67, 1920, 1080, true), "button_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                containerGUI.addPlainButton("categories_button", new Rectangle(1539, 351, 67, 67, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)),categorySkin);
+                // Button to rename skin
+                containerGUI.addImage("rename_image", new Rectangle(1653, 354, 62, 62, 1920, 1080, true), "button_RENAME", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                containerGUI.addPlainButton("rename_button", new Rectangle(1653, 354, 62, 62, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), renameSkin);
+                // Button to remove skin
+                containerGUI.addImage("remove_image", new Rectangle(1765, 354, 62, 62, 1920, 1080, true), "button_REMOVE", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                containerGUI.addPlainButton("remove_button", new Rectangle(1765, 354, 62, 62, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), removeSkin);
+
+                containerGUI.display(player);
+            }
+        }
+
+        // Popup for when you click the remove button
+        public void popupRemove(BasePlayer player, bool isActive = false)
+        {
+            GuiContainer containerGUI = new GuiContainer(this, "popupRemove", "background" );
+            if (isActive==true)
+            {
+                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
+            } else
+            {
+                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRename");
+                GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
+                containerGUI.addImage("popup_Remove", new Rectangle(1444, 417, 474, 211, 1920, 1080, true), "popup_REMOVE", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                PrintToChat("test"); // debugging issue
+            }
+            containerGUI.display(player);
+        }
+
+        // Popup for when you click the rename button
+
+        public void popupRename(BasePlayer player, bool isActive = false)
+        {
+            GuiContainer containerGUI = new GuiContainer(this, "popupRename", "background" );
+            if (isActive == true)
+            {
+                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRename");
+            }
+            else
+            {
+                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
+                GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
+                containerGUI.addImage("popup_Rename", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_RENAME", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+            }
+            containerGUI.display(player);
+        }
+
+        // Popup for when you click the category button
+        public void popupCategories(BasePlayer player, bool isActive = false)
+        {
+            GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
+            if (isActive == true)
+            {
+                GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
+            }
+            else
+            {
+                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRename");
+                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
+                containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+            }
+            containerGUI.display(player);
+        }
+
+        public void buttonsLeft(BasePlayer player)
+        {
+            GuiContainer containerGUI = new GuiContainer(this, "buttonsLeft", "background");
+            containerGUI.addImage("add_image", new Rectangle(0, 5, 110, 110, 1920, 1080, true), "button_ADD", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
+            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+
+            bool isStaff = true; // placeholder for testing purposes
+            int queueSum = 25; // placeholder for testing purposes
+            if(isStaff == true)
+            {
+                containerGUI.addImage("check_image", new Rectangle(0, 111, 110, 110, 1920, 1080, true), "button_CHECK", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                containerGUI.addPlainButton("check_button", new Rectangle(0, 111, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPanel("check_text", new Rectangle(72, 130, 39, 21, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(10, 10, 10, 0.0f), 0, 0, new GuiText($"{queueSum}", 12, new GuiColor(255, 255, 255, 0.6f), TextAnchor.MiddleLeft));
+            }
+            containerGUI.display(player);
+        }
+
         public void closeUI(virtualContainer container)
         {
 #if DEBUG
@@ -647,7 +814,7 @@ namespace Oxide.Plugins
         }
 
         private void onItemRemoved(virtualContainer container, Item item)
-        {
+        {            PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #if DEBUG
             PrintToChat($"OnItemRemoved: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
