@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("GUICreator", "OHM", "1.2.3")]
+    [Info("GUICreator", "OHM", "1.2.4")]
     [Description("GUICreator")]
     internal class GUICreator : RustPlugin
     {
@@ -89,6 +89,13 @@ namespace Oxide.Plugins
             public double anchorMinY;
             public double anchorMaxX;
             public double anchorMaxY;
+
+            public double X;
+            public double Y;
+            public double W;
+            public double H;
+
+            bool topLeftOrigin;
             //public string anchorMin => $"{anchorMinX} {anchorMinY}";
             //public string anchorMax => $"{anchorMaxX} {anchorMaxY}";
 
@@ -100,6 +107,12 @@ namespace Oxide.Plugins
 
             public Rectangle(double X, double Y, double W, double H, double resX = 1, double resY = 1, bool topLeftOrigin = false)
             {
+                this.X = X;
+                this.Y = Y;
+                this.W = W;
+                this.H = H;
+                this.topLeftOrigin = topLeftOrigin;
+
                 double newY = topLeftOrigin ? resY - Y - H : Y;
 
                 anchorMinX = X / resX;
@@ -183,13 +196,15 @@ namespace Oxide.Plugins
             public string name;
             public string parent;
             public List<Timer> timers = new List<Timer>();
+            public Action<BasePlayer> closeCallback;
             private Dictionary<string, Action<BasePlayer, string[]>> callbacks = new Dictionary<string, Action<BasePlayer, string[]>>();
 
-            public GuiContainer(Plugin plugin, string name, string parent = null)
+            public GuiContainer(Plugin plugin, string name, string parent = null, Action<BasePlayer> closeCallback = null)
             {
                 this.plugin = plugin;
                 this.name = safeName(name);
                 this.parent = safeName(parent);
+                this.closeCallback = closeCallback;
             }
 
             public enum Layer { overall, overlay, menu, hud, under };
@@ -574,6 +589,7 @@ namespace Oxide.Plugins
                         if (cont.plugin != container.plugin) continue;
                         if (cont.parent == container.name) destroyGuiContainer(cont.plugin, cont, garbage);
                     }
+                    container.closeCallback?.Invoke(player);
                     foreach (CuiElement element in container)
                     {
                         destroyGuiElement(plugin, container, element.Name);

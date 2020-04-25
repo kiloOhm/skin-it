@@ -37,8 +37,12 @@ namespace Oxide.Plugins
             PluginInstance = this;
         }
 
-        DynamicConfigFile File;
-        Data data;
+        DynamicConfigFile SkinsFile;
+        SkinsData skinsData;
+
+        DynamicConfigFile RequestsFile;
+        RequestData requestData;
+
 
         private const int slot = 19;
         #endregion
@@ -49,19 +53,36 @@ namespace Oxide.Plugins
         public class Request
         {
             [JsonProperty(PropertyName = "Requester Steam ID")]
-            ulong userID;
+            public ulong userID;
             [JsonProperty(PropertyName = "Skin ID")]
-            ulong skinID;
+            public ulong skinID;
             [JsonProperty(PropertyName = "Category")]
-            string category;
+            public string category;
             [JsonProperty(PropertyName = "Skin")]
-            Skin skin;
+            public Skin skin;
+
+            public Request() { }
 
             public Request(ulong userID, ulong skinID)
             {
                 this.userID = userID;
                 this.skinID = skinID;
-                PluginInstance.skinWebRequest(skinID, (skin) => this.skin = skin);
+                Request instance = this;
+                PluginInstance.skinWebRequest(skinID, (skin) => 
+                {
+                    instance.skin = skin;
+                    PluginInstance.saveRequestsData();
+                });
+            }
+
+            public void approve(string category = null)
+            {
+                PluginInstance.addSkin(skin, category);
+            }
+
+            public void returnToQueue()
+            {
+                PluginInstance.requestData.returnRequest(this);
             }
         }
 
@@ -108,7 +129,7 @@ namespace Oxide.Plugins
             public string safename => Regex.Replace(name, " ", "_");
             [JsonProperty(PropertyName = "Category")]
             public string category;
-            public Category categoryInternal => PluginInstance.data.GetCategory(PluginInstance.data.GetSkinnable(shortname), category);
+            public Category categoryInternal => PluginInstance.skinsData.GetCategory(PluginInstance.skinsData.GetSkinnable(shortname), category);
             [JsonProperty(PropertyName = "Item Shortname")]
             public string shortname;
             [JsonProperty(PropertyName = "Skin ID")]
@@ -209,8 +230,10 @@ namespace Oxide.Plugins
             permission.RegisterPermission("skinit.deployable", this);
             permission.RegisterPermission("skinit.tool", this);
             permission.RegisterPermission("skinit.weapon", this);
-            File = Interface.Oxide.DataFileSystem.GetFile("skinit/skins");
-            loadData();
+            SkinsFile = Interface.Oxide.DataFileSystem.GetFile("skinit/skins");
+            loadSkinsData();
+            RequestsFile = Interface.Oxide.DataFileSystem.GetFile("skinit/requests");
+            loadRequestsData();
         }
 
         void OnServerInitialized()
@@ -221,15 +244,15 @@ namespace Oxide.Plugins
             Dictionary<string, List<ulong>> toBeAdded = new Dictionary<string, List<ulong>>();
             foreach (string shortname in config.skins.Keys)
             {
-                Skinnable item = data.GetSkinnable(shortname);
+                Skinnable item = skinsData.GetSkinnable(shortname);
                 if (item == null)
                 {
                     item = new Skinnable(shortname);
-                    data.items.Add(item);
+                    skinsData.items.Add(item);
                 }
                 foreach (string category in config.skins[shortname].Keys)
                 {
-                    Category cat = data.GetCategory(item, category);
+                    Category cat = skinsData.GetCategory(item, category);
                     if (cat == null)
                     {
                         cat = new Category(category, item.shortname);
@@ -237,7 +260,7 @@ namespace Oxide.Plugins
                     }
                     foreach (ulong id in config.skins[shortname][category])
                     {
-                        if (data.GetSkin(cat, id) == null)
+                        if (skinsData.GetSkin(cat, id) == null)
                         {
                             if (!toBeAdded.ContainsKey(cat.name)) toBeAdded.Add(cat.name, new List<ulong>());
                             toBeAdded[cat.name].Add(id);
@@ -252,8 +275,8 @@ namespace Oxide.Plugins
             }
 
             //delete removed skins
-            data.items.RemoveAll(item => !config.skins.ContainsKey(item.shortname));
-            foreach (Skinnable item in data.items)
+            skinsData.items.RemoveAll(item => !config.skins.ContainsKey(item.shortname));
+            foreach (Skinnable item in skinsData.items)
             {
                 item.categories.RemoveAll(cat => !config.skins[item.shortname].ContainsKey(cat.name));
                 foreach (Category cat in item.categories)
@@ -261,7 +284,7 @@ namespace Oxide.Plugins
                     cat.skins.RemoveAll(skin => !config.skins[item.shortname][cat.name].Contains(skin.id));
                 }
             }
-            saveData();
+            saveSkinsData();
 
             #endregion
 
@@ -659,7 +682,7 @@ namespace Oxide.Plugins
 #if DEBUG
             PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
-            Skinnable skinnable = data.GetSkinnable(item.info.shortname);
+            Skinnable skinnable = skinsData.GetSkinnable(item.info.shortname);
             if(skinnable == null)
             {
 #if DEBUG
@@ -748,6 +771,12 @@ namespace Oxide.Plugins
 #if DEBUG
             player.ChatMessage("testing");
 #endif
+            if(args[0] == "approve")
+            {
+                requestData.getNextRequest().approve("test");
+                return;
+            }
+            requestData.addRequest(new Request(player.userID, ulong.Parse(args[0])));
         }
         #endregion
 
@@ -838,26 +867,26 @@ namespace Oxide.Plugins
 
         private void addSkin(Skin skin, string category, bool cfg = true)
         {
-            skin.category = category;
+            skin.category = category ?? "main";
 
-            Skinnable item = data.GetSkinnable(skin.shortname);
+            Skinnable item = skinsData.GetSkinnable(skin.shortname);
             if (item == null)
             {
                 item = new Skinnable(skin.shortname);
-                data.items.Add(item);
+                skinsData.items.Add(item);
             }
-            Category cat = data.GetCategory(item, skin.category);
+            Category cat = skinsData.GetCategory(item, skin.category);
             if (cat == null)
             {
                 cat = new Category(skin.category, skin.shortname);
                 item.categories.Add(cat);
             }
-            if (data.GetSkin(cat, skin.id) == null)
+            if (skinsData.GetSkin(cat, skin.id) == null)
             {
                 cat.skins.Add(skin);
                 guiCreator.registerImage(this, skin.safename, skin.url);
             }
-            saveData();
+            saveSkinsData();
 
             if (cfg)
             {
@@ -1111,11 +1140,13 @@ namespace Oxide.Plugins
         #endregion
 
         #region data management
-        private class Data
+
+        #region skinsData
+        private class SkinsData
         {
             public List<Skinnable> items = new List<skinit.Skinnable>();
 
-            public Data()
+            public SkinsData()
             {
             }
 
@@ -1166,11 +1197,11 @@ namespace Oxide.Plugins
             }
         }
 
-        void saveData()
+        void saveSkinsData()
         {
             try
             {
-                File.WriteObject(data);
+                SkinsFile.WriteObject(skinsData);
             }
             catch (Exception E)
             {
@@ -1178,17 +1209,91 @@ namespace Oxide.Plugins
             }
         }
 
-        void loadData()
+        void loadSkinsData()
         {
             try
             {
-                data = File.ReadObject<Data>();
+                skinsData = SkinsFile.ReadObject<SkinsData>();
             }
             catch (Exception E)
             {
                 Puts(E.ToString());
             }
         }
+
+        #endregion
+
+        #region requestsData
+        private class RequestData
+        {
+            public Queue<Request> requests = new Queue<skinit.Request>();
+
+            public RequestData()
+            {
+            }
+
+            public void addRequest(Request request)
+            {
+                requests.Enqueue(request);
+                PluginInstance.saveRequestsData();
+            }
+
+            public void returnRequest(Request request)
+            {
+                Queue<Request> newQueue = new Queue<Request>();
+                newQueue.Enqueue(request);
+                foreach(Request req in requests)
+                {
+                    newQueue.Enqueue(req);
+                }
+                requests = newQueue;
+                PluginInstance.saveRequestsData();
+            }
+
+            public Request getNextRequest()
+            {
+                Request output = requests.Dequeue();
+                PluginInstance.saveRequestsData();
+                return output;
+            }
+
+            public List<Request> getPendingRequests(ulong userID)
+            {
+                List<Request> output = new List<skinit.Request>();
+                foreach (Request req in requests)
+                {
+                    if (req.userID == userID) output.Add(req);
+                }
+                return output;
+            }
+        }
+
+        void saveRequestsData()
+        {
+            try
+            {
+                RequestsFile.WriteObject(requestData);
+            }
+            catch (Exception E)
+            {
+                Puts(E.ToString());
+            }
+        }
+
+        void loadRequestsData()
+        {
+            try
+            {
+                requestData = RequestsFile.ReadObject<RequestData>();
+            }
+            catch (Exception E)
+            {
+                Puts(E.ToString());
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region Config
