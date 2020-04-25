@@ -491,6 +491,8 @@ namespace Oxide.Plugins
             return retVal;
         }
 
+
+
         public void panelOneBackground(BasePlayer player) // also background for preview panel
         {
             GuiContainer containerGUI = new GuiContainer(this, "panelOneBackground", "background");
@@ -795,6 +797,24 @@ namespace Oxide.Plugins
         // Popup for when you click the category button
         public void popupCategories(BasePlayer player, int activeSkin, int page, bool isActive = false, bool dropDownActive = false, bool error = false, string activeSelection = "Click to Select a Category")
         {
+            List<string> categoriesPlaceholder = new List<string>()
+        {
+            "carrot",
+            "fox",
+            "explorer",
+             "fox1",
+            "fox2",
+              "fox3",
+                          "carrot",
+            "fox",
+            "explorer",
+             "fox1",
+            "fox2",
+              "fox3"
+        };
+            categoriesPlaceholder.Insert(0, "Add a New Category");
+            List<List<string>> ListOfLists = SplitIntoChunks<string>(categoriesPlaceholder, 5);
+            
             GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
             if (isActive == true)
             {
@@ -810,7 +830,7 @@ namespace Oxide.Plugins
                         dropDownActive = true;
                         
                         popupCategories(player, activeSkin, page, false, true);
-                        categorySelection(player, true);
+                        categorySelection(player, true, ListOfLists);
                     } else {
                         dropDownActive = false;
                         GuiTracker.getGuiTracker(player).destroyGui(this, "categorySelection");
@@ -847,7 +867,7 @@ namespace Oxide.Plugins
                 if (error == true)
                 {
                     containerGUI.addPlainButton("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NO CATEGORY SELECTED", 15, new GuiColor(162, 51, 46, 0.8f)));
-                    timer.Once(1.0f, () => popupCategories(player, activeSkin, page, false, false, false));
+                    timer.Once(0.5f, () => popupCategories(player, activeSkin, page, false, false, false));
                 }
                 else
                 {
@@ -862,14 +882,24 @@ namespace Oxide.Plugins
 
         // Choose your category, works for both the right and left prompt
 
-        public void categorySelection(BasePlayer player, bool sentByRight)
+        public void categorySelection(BasePlayer player, bool sentByRight, List<List<string>> ListOfLists)
         {
+            int maximumDropdownItems = 5;
+            int page = 1;
+            List<string> activeDropDown = ListOfLists[page];
+
             GuiContainer containerGUI = new GuiContainer(this, "categorySelection", "background");
             if (sentByRight==true)
             {
                 containerGUI.addImage("dropdown_menu", new Rectangle(1449, 600, 446, 429, 1920, 1080, true), "dropdown", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-                
-            }
+                int i = 1;
+                foreach (string s in activeDropDown)
+                {
+                    
+                    // some stuff is gonna happen here
+                    }
+                    i++;
+                }
             containerGUI.display(player);
         }
         public void buttonsLeft(BasePlayer player)
