@@ -776,7 +776,16 @@ namespace Oxide.Plugins
                 requestData.getNextRequest().approve("test");
                 return;
             }
-            requestData.addRequest(new Request(player.userID, ulong.Parse(args[0])));
+            if(args[0] == "return")
+            {
+                Request req = requestData.getNextRequest();
+                timer.Once(10, () =>
+                {
+                    req.returnToQueue();
+                });
+                return;
+            }
+            if (requestData.addRequest(new Request(player.userID, ulong.Parse(args[0])))) player.ChatMessage("done");
         }
         #endregion
 
@@ -1232,10 +1241,23 @@ namespace Oxide.Plugins
             {
             }
 
-            public void addRequest(Request request)
+            public bool addRequest(Request request)
             {
+                if (PluginInstance.skinsData.GetSkin(request.skinID) != null) return false;
+                if (getRequest(request.skinID) != null) return false;
+                if (getPendingRequests(request.userID).Count >= config.maxPeningReq) return false;
                 requests.Enqueue(request);
                 PluginInstance.saveRequestsData();
+                return true;
+            }
+
+            public Request getRequest(ulong skinID)
+            {
+                foreach (Request req in requests)
+                {
+                    if (req.skinID == skinID) return req;
+                }
+                return null;
             }
 
             public void returnRequest(Request request)
@@ -1313,6 +1335,9 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Hide Categories that the User doesn't have Permission for")]
             public bool hideCatsWithoutPerm;
 
+            [JsonProperty(PropertyName = "Maximum pending requests per player")]
+            public int maxPeningReq;
+
             [JsonProperty(PropertyName = "Attire Cost")]
             public int costAttire;
 
@@ -1338,6 +1363,7 @@ namespace Oxide.Plugins
                 useServerRewards = true,
                 useEconomics = false,
                 hideCatsWithoutPerm = false,
+                maxPeningReq = 7,
                 costAttire = 5,
                 costDeployable = 10,
                 costTool = 15,
@@ -1396,6 +1422,7 @@ namespace Oxide.Plugins
             {"Acoustic Guitar", "fun.guitar"},
             {"AK47", "rifle.ak"},
             {"Armored Door", "door.hinged.toptier"},
+            {"Armored Double Door", "door.double.hinged.toptier"},
             {"Balaclava", "mask.balaclava"},
             {"Bandana", "mask.bandana"},
             {"Beenie Hat", "hat.beenie"},
@@ -1419,6 +1446,7 @@ namespace Oxide.Plugins
             {"Double Barrel Shotgun", "shotgun.double"},
             {"Eoka Pistol", "pistol.eoka"},
             {"F1 Grenade", "grenade.f1"},
+            {"Garage Door", "wall.frame.garagedoor"},
             {"Hammer", "hammer"},
             {"Hatchet", "hatchet"},
             {"Hide Halterneck", "attire.hide.helterneck"},
@@ -1433,6 +1461,7 @@ namespace Oxide.Plugins
             {"Long TShirt", "tshirt.long"},
             {"Longsword", "longsword"},
             {"LR300", "rifle.lr300"},
+            {"M249", "lmg.m249" },
             {"Metal Chest Plate", "metal.plate.torso"},
             {"Metal Facemask", "metal.facemask"},
             {"Miner Hat", "hat.miner"},
@@ -1455,6 +1484,7 @@ namespace Oxide.Plugins
             {"Semi-Automatic Pistol", "pistol.semiauto"},
             {"Semi-Automatic Rifle", "rifle.semiauto"},
             {"Sheet Metal Door", "door.hinged.metal"},
+            {"Sheet Metal Double Door", "door.double.hinged.metal"},
             {"Shorts", "pants.shorts"},
             {"Sleeping Bag", "sleepingbag"},
             {"Snow Jacket", "jacket.snow"},
@@ -1469,6 +1499,7 @@ namespace Oxide.Plugins
             {"Waterpipe Shotgun", "shotgun.waterpipe"},
             {"Wood Storage Box", "box.wooden"},
             {"Wooden Door", "door.hinged.wood"},
+            {"Wooden Double Door", "door.double.hinged.wood"},
             {"Work Boots", "shoes.boots"}
         };
 
