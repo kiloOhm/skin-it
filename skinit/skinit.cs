@@ -398,6 +398,8 @@ namespace Oxide.Plugins
             if (container.player.IPlayer.HasPermission("skinit.tool")) sb.Append("tools ");
             if (container.player.IPlayer.HasPermission("skinit.weapon")) sb.Append("weapons ");
             string skinPermissions = sb.ToString().ToUpper();
+            skinPermissions.Trim();
+            skinPermissions = Regex.Replace(skinPermissions, " ", ", ");
 #if DEBUG
             container.player.ChatMessage("sending UI");
 #endif
