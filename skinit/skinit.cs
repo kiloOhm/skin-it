@@ -9,6 +9,7 @@ using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -289,6 +290,10 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "popup_REMOVE", "https://i.imgur.com/ewo1fFE.png");
             guiCreator.registerImage(this, "popup_CATEGORIES", "https://i.imgur.com/tUjpJ5T.png");
             guiCreator.registerImage(this, "popup_RENAME", "https://i.imgur.com/smEo4kf.png");
+            guiCreator.registerImage(this, "arrow_up", "https://i.imgur.com/u6Bbq5a.png");
+            guiCreator.registerImage(this, "arrow_down", "https://i.imgur.com/iY9Wa2A.png");
+            guiCreator.registerImage(this, "dropdown", "https://i.imgur.com/8QZmPFq.png");
+
 
             guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
             guiCreator.registerImage(this, "sad", "https://s3.amazonaws.com/pix.iemoji.com/images/emoji/apple/ios-12/256/loudly-crying-face.png");
@@ -385,6 +390,7 @@ namespace Oxide.Plugins
             containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 89, 1921, 1081, true), "GUI_1_9", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 557, 71, 1921, 1081, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("Text_1", new Rectangle(1334, 925, 460, 121, 1920, 1080, true), "Text_1", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
+
             containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 18, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
             containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
@@ -500,6 +506,7 @@ namespace Oxide.Plugins
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupRename");
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "categorySelection");
         }
         public void panelOne(BasePlayer player, Item item, List<List<Skin>> skinListOfLists, int activeSkin = 0, int page=0)
         {
@@ -733,6 +740,7 @@ namespace Oxide.Plugins
                 GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
             } else
             {
+                destroyPopups(player);
                 Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
                 {
                 };
@@ -759,10 +767,11 @@ namespace Oxide.Plugins
             GuiContainer containerGUI = new GuiContainer(this, "popupRename", "background" );
             if (isActive == true)
             {
-                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRename");
+                destroyPopups(player);
             }
             else
             {
+                destroyPopups(player);
                 Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
                 {
                 };
@@ -784,34 +793,85 @@ namespace Oxide.Plugins
         }
 
         // Popup for when you click the category button
-        public void popupCategories(BasePlayer player, int activeSkin, int page, bool isActive = false)
+        public void popupCategories(BasePlayer player, int activeSkin, int page, bool isActive = false, bool dropDownActive = false, bool error = false, string activeSelection = "Click to Select a Category")
         {
             GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
             if (isActive == true)
             {
-                GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
+                destroyPopups(player);
             }
             else
             {
-                Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
+                destroyPopups(player);
+                Action<BasePlayer, string[]> triggerdropdown = (bPlayer, input) =>
                 {
+                    if(dropDownActive == false)
+                    {
+                        dropDownActive = true;
+                        
+                        popupCategories(player, activeSkin, page, false, true);
+                        categorySelection(player, true);
+                    } else {
+                        dropDownActive = false;
+                        GuiTracker.getGuiTracker(player).destroyGui(this, "categorySelection");
+                        popupCategories(player, activeSkin, page, false, false);
+
+                    }
+                };
+                Action<BasePlayer, string[]> confirm = (bPlayer, input) =>
+                {
+                    if(activeSelection == "Click to Select a Category")
+                    {
+                        popupCategories(player, activeSkin, page, false, false, true);
+                    }
+
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
                     destroyPopups(player);
                     buttonsRight(player, activeSkin, page);
                 };
-                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRename");
-                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
-                containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-                containerGUI.addPlainButton("dropdown", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0.5f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("Click to Select a Category", 15, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPlainButton("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+
+                if (dropDownActive == false)
+                {
+                    containerGUI.addImage("arrow_image", new Rectangle(1772, 518, 119, 112, 1920, 1080, true), "arrow_down", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                }
+                else
+                {
+                    containerGUI.addImage("arrow_image", new Rectangle(1772, 518, 119, 112, 1920, 1080, true), "arrow_up", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+
+                };
+                    containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                containerGUI.addPlainButton("arrow_button", new Rectangle(1487, 541, 316, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0.5f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText(activeSelection, 15, new GuiColor(255, 255, 255, 0.8f)), triggerdropdown);
+                containerGUI.addPlainButton("dropdown_button", new Rectangle(1772, 518, 119, 112, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), triggerdropdown);
+                if (error == true)
+                {
+                    containerGUI.addPlainButton("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NO CATEGORY SELECTED", 15, new GuiColor(162, 51, 46, 0.8f)));
+                    timer.Once(1.0f, () => popupCategories(player, activeSkin, page, false, false, false));
+                }
+                else
+                {
+                    containerGUI.addPlainButton("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)), confirm);
+
+                }
                 containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PICK A NEW CATEGORY", 20, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
             }
             containerGUI.display(player);
         }
 
+        // Choose your category, works for both the right and left prompt
+
+        public void categorySelection(BasePlayer player, bool sentByRight)
+        {
+            GuiContainer containerGUI = new GuiContainer(this, "categorySelection", "background");
+            if (sentByRight==true)
+            {
+                containerGUI.addImage("dropdown_menu", new Rectangle(1449, 600, 446, 429, 1920, 1080, true), "dropdown", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                
+            }
+            containerGUI.display(player);
+        }
         public void buttonsLeft(BasePlayer player)
         {
             GuiContainer containerGUI = new GuiContainer(this, "buttonsLeft", "background");
