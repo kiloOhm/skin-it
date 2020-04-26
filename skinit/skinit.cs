@@ -1339,7 +1339,17 @@ namespace Oxide.Plugins
             if (cat == null)
             {
                 cat = new Category(skin.category, skin.shortname);
-                item.categories.Add(cat);
+                if(cat.name == "main")
+                {
+                    List<Category> newList = new List<Category>();
+                    newList.Add(cat);
+                    newList.AddRange(item.categories);
+                    item.categories = newList;
+                }
+                else
+                {
+                    item.categories.Add(cat);
+                }
             }
             if (skinsData.GetSkin(cat, skin.id) == null)
             {
@@ -1356,7 +1366,20 @@ namespace Oxide.Plugins
                 }
                 if (!config.skins[skin.shortname].ContainsKey(category))
                 {
-                    config.skins[skin.shortname].Add(category, new List<ulong>());
+                    if(category == "main")
+                    {
+                        Dictionary<string, List<ulong>> newDict = new Dictionary<string, List<ulong>>;
+                        newDict.Add(category, new List<ulong>());
+                        foreach(string cat_ in config.skins[skin.shortname].Keys)
+                        {
+                            newDict.Add(cat_, config.skins[skin.shortname][cat_]);
+                        }
+                        config.skins[skin.shortname] = newDict;
+                    }
+                    else
+                    {
+                        config.skins[skin.shortname].Add(category, new List<ulong>());
+                    }
                 }
                 if (!config.skins[skin.shortname][category].Contains(skin.id)) config.skins[skin.shortname][category].Add(skin.id);
                 SaveConfig();
