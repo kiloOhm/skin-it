@@ -764,11 +764,12 @@ namespace Oxide.Plugins
                     if (isActiveCategories == true)
                     {
                         destroyPopups(player);
+                        popupCategories(player, activeSkin, isActiveCategories = true);
                         isActiveCategories = false;
                     }
                     else
                     {
-                        popupCategories(player, activeSkin);
+                        popupCategories(player, activeSkin, isActiveCategories = false);
                         isActiveCategories = true;
                         isActiveRemove = false;
                         isActiveRename = false;
@@ -906,6 +907,7 @@ namespace Oxide.Plugins
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
                     destroyPopups(player);
+                    staffOnlyButtonsRight(player, activeSkin, 0);
                 };
                 Action<BasePlayer, string[]> confirm = (bPlayer, input) =>
                 {
@@ -963,6 +965,7 @@ namespace Oxide.Plugins
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
             {
                 destroyPopups(player);
+                staffOnlyButtonsRight(player, activeSkin, 0);
             };
             containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
             containerGUI.addInput("newname", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
@@ -1044,8 +1047,8 @@ namespace Oxide.Plugins
             };
             if (ListOfCategories.Count > 1)
             {
-                containerGUI.addPlainButton("goUp", new Rectangle(1644, 595, 55, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("UP", 10, new GuiColor(255, 255, 255, 0.5f)), goUp);
-                containerGUI.addPlainButton("goDown", new Rectangle(1644, 969, 55, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("DOWN", 10, new GuiColor(255, 255, 255, 0.5f)), goDown);
+                containerGUI.addPlainButton("goUp", new Rectangle(1849, 772, 46, 46, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(74, 29, 33, 1), FadeIn, FadeOut, new GuiText(">>", 20, new GuiColor(255, 255, 255, 0.5f)), goUp);
+                containerGUI.addPlainButton("goDown", new Rectangle(1451, 772, 46, 46, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(74, 29, 33, 1), FadeIn, FadeOut, new GuiText("<<", 20, new GuiColor(255, 255, 255, 0.5f)), goDown);
             }
             containerGUI.display(player);
         }
