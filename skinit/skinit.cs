@@ -801,8 +801,9 @@ namespace Oxide.Plugins
             } else
             {
                 destroyPopups(player);
-                Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
+                Action<BasePlayer, string[]> confirm = (bPlayer, input) =>
                 {
+
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
