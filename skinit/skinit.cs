@@ -341,6 +341,8 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "arrow_up", "https://i.imgur.com/u6Bbq5a.png");
             guiCreator.registerImage(this, "arrow_down", "https://i.imgur.com/iY9Wa2A.png");
             guiCreator.registerImage(this, "dropdown", "https://i.imgur.com/8QZmPFq.png");
+            guiCreator.registerImage(this, "popup_ADDNEW", "https://i.imgur.com/sryvzoF.png");
+            guiCreator.registerImage(this, "popup_ADDNEWCATEGORY", "https://i.imgur.com/X9Q4Tyb.png");
 
 
             guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
@@ -560,6 +562,11 @@ namespace Oxide.Plugins
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
             GuiTracker.getGuiTracker(player).destroyGui(this, "categorySelection");
             GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "popupAddnew");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepOne");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepTwo");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepThree");
+
         }
         #endregion
         #region UI parameters: Populate Available Skins with Pages of 30 Items Each and Right/Left Functionality
@@ -1041,7 +1048,11 @@ namespace Oxide.Plugins
         {
             GuiContainer containerGUI = new GuiContainer(this, "buttonsLeft", "background");
             containerGUI.addImage("add_image", new Rectangle(0, 5, 110, 110, 1920, 1080, true), "button_ADD", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+            Action<BasePlayer, string[]> popupAddnew = (bPlayer, input) =>
+            {
+                suggestNewStepOne(player);
+            };
+            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddnew);
 
             bool isStaff = true; // placeholder for testing purposes
             int queueSum = 25; // placeholder for testing purposes
@@ -1054,6 +1065,65 @@ namespace Oxide.Plugins
             containerGUI.display(player);
         }
 
+        public void suggestNewStepOne(BasePlayer player)
+        {
+            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupAddnew") == null)
+            {
+                destroyPopups(player);
+                GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
+                Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
+                {
+                    // test is used for the example string
+                    suggestNewStepTwo(player, "test");
+                };
+                Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
+                {
+                    destroyPopups(player);
+                };
+                containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEW", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                containerGUI.addInput("newname", new Rectangle(572, 462, 379, 67, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
+                containerGUI.addPanel("newnameheader", new Rectangle(572, 416, 379, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 1: ENTER THE STEAM ID OF SKIN", 10, new GuiColor(255, 255, 255, 0.8f)));
+
+                containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+                containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("cancel", new Rectangle(688, 643, 525, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.display(player);
+            }
+            else
+            {
+                destroyPopups(player);
+            }
+        }
+        public void suggestNewStepTwo(BasePlayer player, string skinID, bool dropDownActive = false)
+        {
+            string activeSelection = "test";
+                GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
+
+                Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
+                {
+                    destroyPopups(player);
+                };
+                containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEWCATEGORY", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                if (dropDownActive == false)
+                    {
+                        containerGUI.addImage("arrow_image", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), "arrow_down", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                     }
+                 else
+                     {
+                        containerGUI.addImage("arrow_image", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), "arrow_up", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+
+                       };
+            containerGUI.addPlainButton("arrow_button", new Rectangle(755, 407, 316, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0.5f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText(activeSelection, 15, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("dropdown_button", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+            
+
+            containerGUI.addPanel("newnameheader", new Rectangle(755, 371, 362, 26, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 2: CHOOSE A CATEGORY", 10, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("confirm", new Rectangle(688, 478, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+                containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("cancel", new Rectangle(688, 556, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.display(player);
+            }
+        
         public void closeUI(virtualContainer container)
         {
 #if DEBUG
