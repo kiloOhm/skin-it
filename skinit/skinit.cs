@@ -1368,7 +1368,7 @@ namespace Oxide.Plugins
                 {
                     if(category == "main")
                     {
-                        Dictionary<string, List<ulong>> newDict = new Dictionary<string, List<ulong>>;
+                        Dictionary<string, List<ulong>> newDict = new Dictionary<string, List<ulong>>();
                         newDict.Add(category, new List<ulong>());
                         foreach(string cat_ in config.skins[skin.shortname].Keys)
                         {
