@@ -842,17 +842,20 @@ namespace Oxide.Plugins
         }
 
         // Popup for when you click the category button
-        public void popupCategories(BasePlayer player, Skin activeSkin, bool dropDownActive = false, bool error = false, string activeSelection = "Click to Select a Category")
+        public void popupCategories(BasePlayer player, Skin activeSkin, bool dropDownActive = false, bool error = false, string activeSelection = "Click to Select a Category", bool dontClose=false)
         {
 
-            if(GuiTracker.getGuiTracker(player).getContainer(this, "popupCategories")==null) {
+            if(GuiTracker.getGuiTracker(player).getContainer(this, "popupCategories")==null || dontClose == true) {
+                if (dontClose == false)
+                {
                     destroyPopups(player);
+                }
                     GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
             
             Action<string> callback = (option) =>
                 {
                     GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
-                    popupCategories(player, activeSkin, dropDownActive = false, error, activeSelection = option);
+                    popupCategories(player, activeSkin, dropDownActive = false, error, activeSelection = option, dontClose: true);
                 };
                 Action<BasePlayer, string[]> triggerdropdown = (bPlayer, input) =>
                 {
@@ -861,7 +864,7 @@ namespace Oxide.Plugins
                     if(dropDownActive == false)
                     {
                         dropDownActive = true;
-                        popupCategories(player, activeSkin, true, false);
+                        popupCategories(player, activeSkin, true, false, dontClose: true) ;
                         dropdown(player, activeSkin, new Rectangle(1449, 600, 446, 429, 1920, 1080, true), callback, "popupCategories");
                         
 
@@ -869,7 +872,7 @@ namespace Oxide.Plugins
                     }
                     else {
                         destroyPopups(player);
-                        popupCategories(player, activeSkin, false, false);
+                        popupCategories(player, activeSkin, false, false, dontClose: true);
                         dropDownActive = false;
 
                     }
@@ -882,7 +885,7 @@ namespace Oxide.Plugins
                 {
                     if(activeSelection == "Click to Select a Category")
                     {
-                        popupCategories(player, activeSkin, dropDownActive = false, error = true);
+                        popupCategories(player, activeSkin, dropDownActive = false, error = true, dontClose: true);
                         GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
 
                     } else if(activeSelection == "Add a New Category")
@@ -921,7 +924,7 @@ namespace Oxide.Plugins
                 containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
             
             containerGUI.display(player);
-            } else
+            } else if(dontClose==false)
             {
                 destroyPopups(player);
             }
