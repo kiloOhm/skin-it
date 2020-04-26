@@ -829,10 +829,20 @@ namespace Oxide.Plugins
             {
                 destroyPopups(player);
                 GuiContainer containerGUI = new GuiContainer(this, "popupRename", "background" );
+                Skin skin = activeSkin;
                 Action<BasePlayer, string[]> confirm = (bPlayer, input) =>
                 {
-                    activeSkin.name = input[0];
-                    PluginInstance.saveSkinsData();
+                    StringBuilder newName = new StringBuilder();
+                    int i = 1;
+                    foreach(string s in input)
+                    {
+                        newName.Append(s);
+                        if (i != input.Length) newName.Append(" ");
+                        i++;
+                    }
+                    removeSkin(skin);
+                    skin.name = newName.ToString();
+                    addSkin(skin, skin.category);
                     destroyPopups(player);
                     virtualContainer container = virtualContainer.find(player);
                     onItemInserted(container, container.item);
