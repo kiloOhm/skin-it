@@ -71,7 +71,7 @@ namespace Oxide.Plugins
                 this.userID = userID;
                 this.skinID = skinID;
                 Request instance = this;
-                PluginInstance.skinWebRequest(skinID, (skin) => 
+                PluginInstance.skinWebRequest(skinID, (skin) =>
                 {
                     instance.skin = skin;
                     PluginInstance.saveRequestsData();
@@ -341,6 +341,8 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "arrow_up", "https://i.imgur.com/u6Bbq5a.png");
             guiCreator.registerImage(this, "arrow_down", "https://i.imgur.com/iY9Wa2A.png");
             guiCreator.registerImage(this, "dropdown", "https://i.imgur.com/8QZmPFq.png");
+            guiCreator.registerImage(this, "popup_ADDNEW", "https://i.imgur.com/sryvzoF.png");
+            guiCreator.registerImage(this, "popup_ADDNEWCATEGORY", "https://i.imgur.com/X9Q4Tyb.png");
 
 
             guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
@@ -405,7 +407,7 @@ namespace Oxide.Plugins
         float FadeIn = 0.2f;
         float FadeOut = 0.2f;
         #endregion
-            #region UI parameters: Intitialize UI, call relevant functions to start upon keyboard command
+        #region UI parameters: Intitialize UI, call relevant functions to start upon keyboard command
         public void sendUI(virtualContainer container)
         {
             StringBuilder sb = new StringBuilder();
@@ -451,28 +453,28 @@ namespace Oxide.Plugins
             skinitButton(container);
         }
         #endregion
-            #region UI parameters: Create "SKIN-IT" button and define what occurs on click
-        public enum buttonStates {idle, noSelected, noPermission, cantAfford, success};
+        #region UI parameters: Create "SKIN-IT" button and define what occurs on click
+        public enum buttonStates { idle, noSelected, noPermission, cantAfford, success };
         public void skinitButton(virtualContainer container, Skin activeSkin = null, Item item = null, buttonStates flag = buttonStates.idle)
         {
             BasePlayer player = container.player;
             Action<BasePlayer, string[]> Skinit = (bPlayer, input) =>
             {
-                if(activeSkin == null || item == null)
+                if (activeSkin == null || item == null)
                 {
-                    skinitButton(container, flag : buttonStates.noSelected);
+                    skinitButton(container, flag: buttonStates.noSelected);
                 }
-                if(buySkin(container, item, activeSkin))
+                if (buySkin(container, item, activeSkin))
                 {
                     skinitButton(container, flag: buttonStates.success);
                 }
                 else
                 {
-                    if(!hasPermission(player, item, activeSkin.categoryInternal))
+                    if (!hasPermission(player, item, activeSkin.categoryInternal))
                     {
                         skinitButton(container, activeSkin, item, flag: buttonStates.noPermission);
                     }
-                    else if(getCost(player, item, activeSkin.categoryInternal) > getPoints(player))
+                    else if (getCost(player, item, activeSkin.categoryInternal) > getPoints(player))
                     {
                         skinitButton(container, activeSkin, item, flag: buttonStates.cantAfford);
                     }
@@ -481,7 +483,7 @@ namespace Oxide.Plugins
             };
             GuiContainer containerGUI = new GuiContainer(this, "skinitButton", "background");
 
-            if (flag == buttonStates.success) 
+            if (flag == buttonStates.success)
             {
                 containerGUI.addPlainButton("checkout_success", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SUCCESS", 30, new GuiColor(134, 190, 41, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
@@ -489,7 +491,7 @@ namespace Oxide.Plugins
                     skinitButton(container);
                 });
             }
-            else if (flag == buttonStates.noPermission) 
+            else if (flag == buttonStates.noPermission)
             {
                 containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU DON'T HAVE PERMISSION", 20, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
@@ -520,7 +522,7 @@ namespace Oxide.Plugins
             containerGUI.display(player);
         }
         #endregion
-            #region UI parameters: Define a function which will split a list into lists of a given size (default = 30)
+        #region UI parameters: Define a function which will split a list into lists of a given size (default = 30)
         public static List<List<T>> SplitIntoChunks<T>(List<T> list, int chunkSize = 30)
         {
             if (chunkSize <= 0)
@@ -541,7 +543,7 @@ namespace Oxide.Plugins
             return retVal;
         }
         #endregion
-            #region UI parameters: Create background for the "Available Skins" and "Preview" panel
+        #region UI parameters: Create background for the "Available Skins" and "Preview" panel
         public void panelOneBackground(BasePlayer player) // also background for preview panel
         {
             GuiContainer containerGUI = new GuiContainer(this, "panelOneBackground", "background");
@@ -552,7 +554,7 @@ namespace Oxide.Plugins
             containerGUI.display(player);
         }
         #endregion
-            #region UI parameters: Define a function which will destroy all popups upon call
+        #region UI parameters: Define a function which will destroy all popups upon call
         public void destroyPopups(BasePlayer player)
         {
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
@@ -560,10 +562,15 @@ namespace Oxide.Plugins
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
             GuiTracker.getGuiTracker(player).destroyGui(this, "categorySelection");
             GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "popupAddnew");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepOne");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepTwo");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepThree");
+
         }
         #endregion
-            #region UI parameters: Populate Available Skins with Pages of 30 Items Each and Right/Left Functionality
-        public void availableSkins(BasePlayer player, Item item, List<List<Skin>> skinListOfLists, int activeSkin = 0, int page=0)
+        #region UI parameters: Populate Available Skins with Pages of 30 Items Each and Right/Left Functionality
+        public void availableSkins(BasePlayer player, Item item, List<List<Skin>> skinListOfLists, int activeSkin = 0, int page = 0)
         {
 
             double OriginX = 487;
@@ -583,19 +590,19 @@ namespace Oxide.Plugins
             List<Skin> skinList = skinListOfLists[page];
             GuiContainer containerGUI = new GuiContainer(this, "panelOne", "categories");
             int i = 0;
-            foreach(Skin s in skinList)
+            foreach (Skin s in skinList)
             {
                 int index = i;
                 Action<BasePlayer, string[]> callback = (bPlayer, input) =>
                 {
                     availableSkins(player, item, skinListOfLists, activeSkin = index, page);
-                    staffOnlyButtonsRight(player, activeSkin = index, page);
+                    staffOnlyButtonsRight(player, skinList[index]);
                     previewPanel(bPlayer, item, skinList[index]);
                     skinitButton(virtualContainer.find(player), skinList[index], item);
                     destroyPopups(player);
-                    
+
                 };
-                if (i<picturesEachRow)
+                if (i < picturesEachRow)
                 {
                     xSpacing = OriginX + (widthEach * i);
                     OriginY = OriginY1;
@@ -604,17 +611,17 @@ namespace Oxide.Plugins
 
 
                 }
-                else if (i>=picturesEachRow && i<(picturesEachRow*2))
+                else if (i >= picturesEachRow && i < (picturesEachRow * 2))
                 {
-                    xSpacing = (OriginX + (widthEach * i))-(widthEach*picturesEachRow);
+                    xSpacing = (OriginX + (widthEach * i)) - (widthEach * picturesEachRow);
                     OriginY = OriginY2;
                     containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
                     containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
                 }
-                else if (i<totalPictures)
+                else if (i < totalPictures)
                 {
-                    xSpacing = (OriginX + (widthEach * i)) - ((widthEach * picturesEachRow)*2);
+                    xSpacing = (OriginX + (widthEach * i)) - ((widthEach * picturesEachRow) * 2);
                     OriginY = OriginY3;
                     containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
                     containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
@@ -622,10 +629,10 @@ namespace Oxide.Plugins
                 }
                 i++;
             }
-            
+
             Action<BasePlayer, string[]> GoRight = (bPlayer, input) =>
             {
-                if (page == skinListOfLists.Count-1)
+                if (page == skinListOfLists.Count - 1)
                 {
                     page = 0;
                     availableSkins(player, item, skinListOfLists, activeSkin = 0, page);
@@ -637,12 +644,12 @@ namespace Oxide.Plugins
                     availableSkins(player, item, skinListOfLists, activeSkin = 0, page);
                     destroyPopups(player);
                 }
-                };
+            };
             Action<BasePlayer, string[]> GoLeft = (bPlayer, input) =>
             {
                 if (page == 0)
                 {
-                    page = skinListOfLists.Count-1;
+                    page = skinListOfLists.Count - 1;
                     availableSkins(player, item, skinListOfLists, activeSkin = 0, page);
                     destroyPopups(player);
                 } else
@@ -651,7 +658,7 @@ namespace Oxide.Plugins
                     availableSkins(player, item, skinListOfLists, activeSkin = 0, page);
                     destroyPopups(player);
                 }
-                };
+            };
             if (skinListOfLists.Count > 1)
             {
                 containerGUI.addPlainButton("goRight", new Rectangle(1437, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(">>", 25, new GuiColor(255, 255, 255, 0.8f)), GoRight);
@@ -662,7 +669,7 @@ namespace Oxide.Plugins
 
         }
         #endregion
-            #region UI parameters: Populate Preview Panel with Selected Skin from Available Skins
+        #region UI parameters: Populate Preview Panel with Selected Skin from Available Skins
         public void previewPanel(BasePlayer player, Item item, Skin skin)
         {
 
@@ -673,7 +680,7 @@ namespace Oxide.Plugins
             containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {getCost(player, item, skin.categoryInternal)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             containerGUI.display(player);
         }
-        
+
         public void sendCategories(BasePlayer player, Item item, List<Category> categoriesList, int activeCategory = 0)
         {
             double OriginY = 494;
@@ -686,7 +693,7 @@ namespace Oxide.Plugins
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
             containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             int i = 0;
-            foreach(Category Cat in categoriesList)
+            foreach (Category Cat in categoriesList)
             {
                 double xSpacing = OriginX + (widthEach * i);
                 int index = i;
@@ -715,14 +722,11 @@ namespace Oxide.Plugins
             availableSkins(player, item, ListOfLists);
         }
         #endregion
-            #region UI parameters: Create staff-only buttons to the right
+        #region UI parameters: Create staff-only buttons to the right
 
-        public void staffOnlyButtonsRight(BasePlayer player, int activeSkin, int page) // Creates buttons for staff only to see when clicking on an item
+        public void staffOnlyButtonsRight(BasePlayer player, Skin activeSkin) // Creates buttons for staff only to see when clicking on an item
         {
             bool isStaff = true; // placeholder
-            bool isActiveCategories = false;
-            bool isActiveRename = false;
-            bool isActiveRemove = false;
             if (isStaff == true)
             {
                 GuiContainer containerGUI = new GuiContainer(this, "buttonsRight", "background");
@@ -730,55 +734,46 @@ namespace Oxide.Plugins
                 // Function when you click the remove button
                 Action<BasePlayer, string[]> removeSkin = (bPlayer, input) =>
                 {
-                    if(isActiveRemove == true)
+                    if (GuiTracker.getGuiTracker(player).getContainer(this, "popupRemove") == null)
                     {
-                        popupRemove(player, activeSkin, page,  isActiveRemove = true);
-                        isActiveRemove = false;
-                    } else
+                        destroyPopups(player);
+                        popupRemove(player, activeSkin);
+                    }
+                    else
                     {
-                        popupRemove(player, activeSkin, page, isActiveRemove = false);
-                        isActiveRemove = true;
-                        isActiveRename = false;
-                        isActiveCategories = false;
+                        destroyPopups(player);
                     }
                 };
                 // Function when you click the rename button
                 Action<BasePlayer, string[]> renameSkin = (bPlayer, input) =>
                 {
-                    if (isActiveRename == true)
+                    if (GuiTracker.getGuiTracker(player).getContainer(this, "popupRename") == null)
                     {
-                        popupRename(player, activeSkin, page, isActiveRename = true);
-                        isActiveRename = false;
+                        destroyPopups(player);
+                        popupRename(player, activeSkin);
                     }
                     else
                     {
-                        popupRename(player, activeSkin, page, isActiveRename = false);
-                        isActiveRename = true;
-                        isActiveCategories = false;
-                        isActiveRemove = false;
+                        destroyPopups(player);
                     }
                 };
                 // Function when you click the categories button
                 Action<BasePlayer, string[]> categorySkin = (bPlayer, input) =>
                 {
-                    if (isActiveCategories == true)
+                    if (GuiTracker.getGuiTracker(player).getContainer(this, "popupCategories") == null)
                     {
                         destroyPopups(player);
-                        popupCategories(player, activeSkin, isActiveCategories = true);
-                        isActiveCategories = false;
+                        popupCategories(player, activeSkin);
                     }
                     else
                     {
-                        popupCategories(player, activeSkin, isActiveCategories = false);
-                        isActiveCategories = true;
-                        isActiveRemove = false;
-                        isActiveRename = false;
+                        destroyPopups(player);
                     }
                 };
 
                 // Button to change category of skin
                 containerGUI.addImage("categories_image", new Rectangle(1539, 351, 67, 67, 1920, 1080, true), "button_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                containerGUI.addPlainButton("categories_button", new Rectangle(1539, 351, 67, 67, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)),categorySkin);
+                containerGUI.addPlainButton("categories_button", new Rectangle(1539, 351, 67, 67, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), categorySkin);
                 // Button to rename skin
                 containerGUI.addImage("rename_image", new Rectangle(1653, 354, 62, 62, 1920, 1080, true), "button_RENAME", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
                 containerGUI.addPlainButton("rename_button", new Rectangle(1653, 354, 62, 62, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), renameSkin);
@@ -789,57 +784,54 @@ namespace Oxide.Plugins
                 containerGUI.display(player);
             }
         }
+
         #endregion
-                #region UI parameters: Define what happens when you click remove, rename, or recategorize buttons
+        #region UI parameters: Define what happens when you click remove, rename, or recategorize buttons
         // Popup for when you click the remove button
-        public void popupRemove(BasePlayer player, int activeSkin, int page, bool isActive = false)
+        public void popupRemove(BasePlayer player, Skin activeSkin)
         {
-            GuiContainer containerGUI = new GuiContainer(this, "popupRemove", "background" );
-            if (isActive==true)
-            {
-                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
-            } else
+            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupRemove") == null)
             {
                 destroyPopups(player);
-                Action<BasePlayer, string[]> confirm = (bPlayer, input) =>
+                GuiContainer containerGUI = new GuiContainer(this, "popupRemove", "background");
+                Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
                 {
 
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
                     destroyPopups(player);
-                    staffOnlyButtonsRight(player, activeSkin, page);
+                    staffOnlyButtonsRight(player, activeSkin);
                 };
-                GuiTracker.getGuiTracker(player).destroyGui(this, "popupRename");
-                GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
                 containerGUI.addImage("popup_Remove", new Rectangle(1444, 417, 474, 211, 1920, 1080, true), "popup_REMOVE", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
                 containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("REMOVE THIS SKIN?", 20, new GuiColor(255, 255, 255, 0.8f)));
                 containerGUI.addPlainButton("cancel", new Rectangle(1502, 528, 163, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
                 containerGUI.addPlainButton("confirm", new Rectangle(1684, 528, 163, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YES", 20, new GuiColor(134, 190, 41, 0.8f)));
-
-            }
-            containerGUI.display(player);
-        }
-
-        // Popup for when you click the rename button
-
-        public void popupRename(BasePlayer player, int activeSkin, int page, bool isActive = false)
-        {
-            GuiContainer containerGUI = new GuiContainer(this, "popupRename", "background" );
-            if (isActive == true)
-            {
-                destroyPopups(player);
+                containerGUI.display(player);
             }
             else
             {
                 destroyPopups(player);
+            }
+        }
+
+
+
+        // Popup for when you click the rename button
+
+        public void popupRename(BasePlayer player, Skin activeSkin)
+        {
+            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupRename") == null)
+            {
+                destroyPopups(player);
+                GuiContainer containerGUI = new GuiContainer(this, "popupRename", "background" );
                 Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
                 {
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
                     destroyPopups(player);
-                    staffOnlyButtonsRight(player, activeSkin, page);
+                    staffOnlyButtonsRight(player, activeSkin);
                 };
 
                 GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
@@ -849,41 +841,29 @@ namespace Oxide.Plugins
                 containerGUI.addPanel("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
                 containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0,0, 0), 0, 0, new GuiText("RENAME THIS SKIN", 20, new GuiColor(255, 255, 255, 0.8f)));
                 containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.display(player);
+            } else
+            {
+                destroyPopups(player);
             }
-            containerGUI.display(player);
+            
         }
 
         // Popup for when you click the category button
-        public void popupCategories(BasePlayer player, int activeSkin, bool isActive = false, bool dropDownActive = false, bool error = false, string activeSelection = "Click to Select a Category")
+        public void popupCategories(BasePlayer player, Skin activeSkin, bool dropDownActive = false, bool error = false, string activeSelection = "Click to Select a Category", bool dontClose=false)
         {
-            List<string> categoriesPlaceholder = new List<string>()
-        {
-            "carrot",
-            "fox",
-            "explorer",
-             "fox1",
-            "fox2",
-              "fox3",
-                          "carrot",
-            "fox",
-            "explorer",
-             "fox1",
-            "fox2",
-              "fox3"
-        };
 
-            GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
-            if (isActive == true)
-            {
-                destroyPopups(player);
-            }
-            else
-            {
-                destroyPopups(player);
-                Action<string> callback = (option) =>
+            if(GuiTracker.getGuiTracker(player).getContainer(this, "popupCategories")==null || dontClose == true) {
+                if (dontClose == false)
+                {
+                    destroyPopups(player);
+                }
+                    GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
+            
+            Action<string> callback = (option) =>
                 {
                     GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
-                    popupCategories(player, activeSkin, isActive = false, dropDownActive = false, error, activeSelection = option);
+                    popupCategories(player, activeSkin, dropDownActive = false, error, activeSelection = option, dontClose: true);
                 };
                 Action<BasePlayer, string[]> triggerdropdown = (bPlayer, input) =>
                 {
@@ -892,15 +872,15 @@ namespace Oxide.Plugins
                     if(dropDownActive == false)
                     {
                         dropDownActive = true;
-                        popupCategories(player, activeSkin, false, true, false);
-                        dropdown(player, new Rectangle(1449, 600, 446, 429, 1920, 1080, true), categoriesPlaceholder, callback, "popupCategories");
+                        popupCategories(player, activeSkin, true, false, dontClose: true) ;
+                        dropdown(player, activeSkin, new Rectangle(1449, 600, 446, 429, 1920, 1080, true), callback, "popupCategories");
                         
 
 
                     }
                     else {
                         destroyPopups(player);
-                        popupCategories(player, activeSkin, false, false, false);
+                        popupCategories(player, activeSkin, false, false, dontClose: true);
                         dropDownActive = false;
 
                     }
@@ -908,13 +888,12 @@ namespace Oxide.Plugins
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
                     destroyPopups(player);
-                    staffOnlyButtonsRight(player, activeSkin, 0);
                 };
                 Action<BasePlayer, string[]> confirm = (bPlayer, input) =>
                 {
                     if(activeSelection == "Click to Select a Category")
                     {
-                        popupCategories(player, activeSkin, isActive = false, dropDownActive = false, error = true);
+                        popupCategories(player, activeSkin, dropDownActive = false, error = true, dontClose: true);
                         GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
 
                     } else if(activeSelection == "Add a New Category")
@@ -951,13 +930,17 @@ namespace Oxide.Plugins
                 }
                 containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PICK A NEW CATEGORY", 20, new GuiColor(255, 255, 255, 0.8f)));
                 containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
-            }
+            
             containerGUI.display(player);
+            } else if(dontClose==false)
+            {
+                destroyPopups(player);
+            }
         }
 
         // Type category if needed 
 
-        public void addNewCategory(BasePlayer player, int activeSkin)
+        public void addNewCategory(BasePlayer player, Skin activeSkin)
         {
             GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
             Action<BasePlayer, string[]> inputCallback = (Bplayer, input) => 
@@ -966,7 +949,7 @@ namespace Oxide.Plugins
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
             {
                 destroyPopups(player);
-                staffOnlyButtonsRight(player, activeSkin, 0);
+                staffOnlyButtonsRight(player, activeSkin);
             };
             containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
             containerGUI.addInput("newname", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
@@ -978,7 +961,7 @@ namespace Oxide.Plugins
 
         // Choose your category, works for both the right and left prompt
         #endregion
-        public void dropdown(BasePlayer player, Rectangle rectangle, List<string> categories, Action<string> callback, string parent, int page = 0)
+        public void dropdown(BasePlayer player, Skin activeSkin, Rectangle rectangle, Action<string> callback, string parent, int page = 0)
         {
             int maximumDropdownItems = 5;
             double OriginX = 1505;
@@ -987,12 +970,18 @@ namespace Oxide.Plugins
             double buttonHeight = 59;
             double spacing = 693 - OriginYOld;
             double OriginY;
-            if (categories[0] == "Add a New Category") { }
+            List<Oxide.Plugins.skinit.Category> categories = GetCategories(player, skinsData.GetSkinnable(activeSkin.shortname));
+            List<string> categoriesString = new List<string>();
+                foreach (Category cat in categories)
+                {
+                    categoriesString.Add(cat.name);
+                }
+            if (categoriesString[0] == "Add a New Category") { }
             else
             {
-                categories.Insert(0, "Add a New Category");
+                categoriesString.Insert(0, "Add a New Category");
             }
-            List<List<string>> ListOfCategories = SplitIntoChunks<string>(categories, maximumDropdownItems);
+            List<List<string>> ListOfCategories = SplitIntoChunks<string>(categoriesString, maximumDropdownItems);
 
             List<string> activeDropDown = ListOfCategories[page];
             GuiContainer containerGUI = new GuiContainer(this, "dropdown", "background");
@@ -1023,13 +1012,13 @@ namespace Oxide.Plugins
                 if (page == ListOfCategories.Count - 1)
                 {
                     page = 0;
-                    dropdown(player, rectangle, categories, callback, parent, page);
+                    dropdown(player, activeSkin, rectangle,  callback, parent, page);
 
                 }
                 else
                 {
                     page += 1;
-                    dropdown(player, rectangle, categories, callback, parent, page);
+                    dropdown(player, activeSkin, rectangle,  callback, parent, page);
                    
                 }
             };
@@ -1038,12 +1027,12 @@ namespace Oxide.Plugins
                 if (page == 0)
                 {
                     page = ListOfCategories.Count - 1;
-                    dropdown(player, rectangle, categories, callback, parent, page);
+                    dropdown(player, activeSkin, rectangle,  callback, parent, page);
                 }
                 else
                 {
                     page -= 1;
-                    dropdown(player, rectangle, categories, callback, parent, page);
+                    dropdown(player, activeSkin, rectangle,  callback, parent, page);
                 }
             };
             if (ListOfCategories.Count > 1)
@@ -1060,7 +1049,11 @@ namespace Oxide.Plugins
         {
             GuiContainer containerGUI = new GuiContainer(this, "buttonsLeft", "background");
             containerGUI.addImage("add_image", new Rectangle(0, 5, 110, 110, 1920, 1080, true), "button_ADD", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+            Action<BasePlayer, string[]> popupAddnew = (bPlayer, input) =>
+            {
+                suggestNewStepOne(player);
+            };
+            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddnew);
 
             bool isStaff = true; // placeholder for testing purposes
             int queueSum = 25; // placeholder for testing purposes
@@ -1073,6 +1066,65 @@ namespace Oxide.Plugins
             containerGUI.display(player);
         }
 
+        public void suggestNewStepOne(BasePlayer player)
+        {
+            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupAddnew") == null)
+            {
+                destroyPopups(player);
+                GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
+                Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
+                {
+                    // test is used for the example string
+                    suggestNewStepTwo(player, "test");
+                };
+                Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
+                {
+                    destroyPopups(player);
+                };
+                containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEW", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                containerGUI.addInput("newname", new Rectangle(572, 462, 379, 67, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
+                containerGUI.addPanel("newnameheader", new Rectangle(572, 416, 379, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 1: ENTER THE STEAM ID OF SKIN", 10, new GuiColor(255, 255, 255, 0.8f)));
+
+                containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+                containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("cancel", new Rectangle(688, 643, 525, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.display(player);
+            }
+            else
+            {
+                destroyPopups(player);
+            }
+        }
+        public void suggestNewStepTwo(BasePlayer player, string skinID, bool dropDownActive = false)
+        {
+            string activeSelection = "test";
+                GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
+
+                Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
+                {
+                    destroyPopups(player);
+                };
+                containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEWCATEGORY", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                if (dropDownActive == false)
+                    {
+                        containerGUI.addImage("arrow_image", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), "arrow_down", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                     }
+                 else
+                     {
+                        containerGUI.addImage("arrow_image", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), "arrow_up", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+
+                       };
+            containerGUI.addPlainButton("arrow_button", new Rectangle(755, 407, 316, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0.5f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText(activeSelection, 15, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("dropdown_button", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+            
+
+            containerGUI.addPanel("newnameheader", new Rectangle(755, 371, 362, 26, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 2: CHOOSE A CATEGORY", 10, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("confirm", new Rectangle(688, 478, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+                containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("cancel", new Rectangle(688, 556, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.display(player);
+            }
+        
         public void closeUI(virtualContainer container)
         {
 #if DEBUG
