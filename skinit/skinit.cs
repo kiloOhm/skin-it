@@ -589,7 +589,7 @@ namespace Oxide.Plugins
                 Action<BasePlayer, string[]> callback = (bPlayer, input) =>
                 {
                     availableSkins(player, item, skinListOfLists, activeSkin = index, page);
-                    staffOnlyButtonsRight(player, activeSkin = index, page);
+                    staffOnlyButtonsRight(player, skinList[index]);
                     previewPanel(bPlayer, item, skinList[index]);
                     skinitButton(virtualContainer.find(player), skinList[index], item);
                     destroyPopups(player);
@@ -717,7 +717,7 @@ namespace Oxide.Plugins
         #endregion
             #region UI parameters: Create staff-only buttons to the right
 
-        public void staffOnlyButtonsRight(BasePlayer player, int activeSkin, int page) // Creates buttons for staff only to see when clicking on an item
+        public void staffOnlyButtonsRight(BasePlayer player, Skin activeSkin) // Creates buttons for staff only to see when clicking on an item
         {
             bool isStaff = true; // placeholder
             bool isActiveCategories = false;
@@ -732,11 +732,11 @@ namespace Oxide.Plugins
                 {
                     if(isActiveRemove == true)
                     {
-                        popupRemove(player, activeSkin, page,  isActiveRemove = true);
+                        popupRemove(player, activeSkin, isActiveRemove = true);
                         isActiveRemove = false;
                     } else
                     {
-                        popupRemove(player, activeSkin, page, isActiveRemove = false);
+                        popupRemove(player, activeSkin, isActiveRemove = false);
                         isActiveRemove = true;
                         isActiveRename = false;
                         isActiveCategories = false;
@@ -747,12 +747,12 @@ namespace Oxide.Plugins
                 {
                     if (isActiveRename == true)
                     {
-                        popupRename(player, activeSkin, page, isActiveRename = true);
+                        popupRename(player, activeSkin, isActiveRename = true);
                         isActiveRename = false;
                     }
                     else
                     {
-                        popupRename(player, activeSkin, page, isActiveRename = false);
+                        popupRename(player, activeSkin, isActiveRename = false);
                         isActiveRename = true;
                         isActiveCategories = false;
                         isActiveRemove = false;
@@ -792,7 +792,7 @@ namespace Oxide.Plugins
         #endregion
                 #region UI parameters: Define what happens when you click remove, rename, or recategorize buttons
         // Popup for when you click the remove button
-        public void popupRemove(BasePlayer player, int activeSkin, int page, bool isActive = false)
+        public void popupRemove(BasePlayer player, Skin activeSkin, bool isActive = false)
         {
             GuiContainer containerGUI = new GuiContainer(this, "popupRemove", "background" );
             if (isActive==true)
@@ -807,7 +807,7 @@ namespace Oxide.Plugins
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
                     destroyPopups(player);
-                    staffOnlyButtonsRight(player, activeSkin, page);
+                    staffOnlyButtonsRight(player, activeSkin);
                 };
                 GuiTracker.getGuiTracker(player).destroyGui(this, "popupRename");
                 GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
@@ -822,7 +822,7 @@ namespace Oxide.Plugins
 
         // Popup for when you click the rename button
 
-        public void popupRename(BasePlayer player, int activeSkin, int page, bool isActive = false)
+        public void popupRename(BasePlayer player, Skin activeSkin, bool isActive = false)
         {
             GuiContainer containerGUI = new GuiContainer(this, "popupRename", "background" );
             if (isActive == true)
@@ -838,7 +838,7 @@ namespace Oxide.Plugins
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
                     destroyPopups(player);
-                    staffOnlyButtonsRight(player, activeSkin, page);
+                    staffOnlyButtonsRight(player, activeSkin);
                 };
 
                 GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
@@ -853,23 +853,8 @@ namespace Oxide.Plugins
         }
 
         // Popup for when you click the category button
-        public void popupCategories(BasePlayer player, int activeSkin, bool isActive = false, bool dropDownActive = false, bool error = false, string activeSelection = "Click to Select a Category")
+        public void popupCategories(BasePlayer player, Skin activeSkin, bool isActive = false, bool dropDownActive = false, bool error = false, string activeSelection = "Click to Select a Category")
         {
-            List<string> categoriesPlaceholder = new List<string>()
-        {
-            "carrot",
-            "fox",
-            "explorer",
-             "fox1",
-            "fox2",
-              "fox3",
-                          "carrot",
-            "fox",
-            "explorer",
-             "fox1",
-            "fox2",
-              "fox3"
-        };
 
             GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
             if (isActive == true)
@@ -892,7 +877,7 @@ namespace Oxide.Plugins
                     {
                         dropDownActive = true;
                         popupCategories(player, activeSkin, false, true, false);
-                        dropdown(player, new Rectangle(1449, 600, 446, 429, 1920, 1080, true), categoriesPlaceholder, callback, "popupCategories");
+                        dropdown(player, activeSkin, new Rectangle(1449, 600, 446, 429, 1920, 1080, true), callback, "popupCategories");
                         
 
 
@@ -907,7 +892,7 @@ namespace Oxide.Plugins
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
                     destroyPopups(player);
-                    staffOnlyButtonsRight(player, activeSkin, 0);
+                    staffOnlyButtonsRight(player, activeSkin);
                 };
                 Action<BasePlayer, string[]> confirm = (bPlayer, input) =>
                 {
@@ -956,7 +941,7 @@ namespace Oxide.Plugins
 
         // Type category if needed 
 
-        public void addNewCategory(BasePlayer player, int activeSkin)
+        public void addNewCategory(BasePlayer player, Skin activeSkin)
         {
             GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
             Action<BasePlayer, string[]> inputCallback = (Bplayer, input) => 
@@ -965,7 +950,7 @@ namespace Oxide.Plugins
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
             {
                 destroyPopups(player);
-                staffOnlyButtonsRight(player, activeSkin, 0);
+                staffOnlyButtonsRight(player, activeSkin);
             };
             containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
             containerGUI.addInput("newname", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
@@ -977,7 +962,7 @@ namespace Oxide.Plugins
 
         // Choose your category, works for both the right and left prompt
         #endregion
-        public void dropdown(BasePlayer player, Rectangle rectangle, List<string> categories, Action<string> callback, string parent, int page = 0)
+        public void dropdown(BasePlayer player, Skin activeSkin, Rectangle rectangle, Action<string> callback, string parent, int page = 0)
         {
             int maximumDropdownItems = 5;
             double OriginX = 1505;
@@ -986,12 +971,18 @@ namespace Oxide.Plugins
             double buttonHeight = 59;
             double spacing = 693 - OriginYOld;
             double OriginY;
-            if (categories[0] == "Add a New Category") { }
+            List<Oxide.Plugins.skinit.Category> categories = GetCategories(player, skinsData.GetSkinnable(activeSkin.shortname));
+            List<string> categoriesString = new List<string>();
+                foreach (Category cat in categories)
+                {
+                    categoriesString.Add(cat.name);
+                }
+            if (categoriesString[0] == "Add a New Category") { }
             else
             {
-                categories.Insert(0, "Add a New Category");
+                categoriesString.Insert(0, "Add a New Category");
             }
-            List<List<string>> ListOfCategories = SplitIntoChunks<string>(categories, maximumDropdownItems);
+            List<List<string>> ListOfCategories = SplitIntoChunks<string>(categoriesString, maximumDropdownItems);
 
             List<string> activeDropDown = ListOfCategories[page];
             GuiContainer containerGUI = new GuiContainer(this, "dropdown", "background");
@@ -1022,13 +1013,13 @@ namespace Oxide.Plugins
                 if (page == ListOfCategories.Count - 1)
                 {
                     page = 0;
-                    dropdown(player, rectangle, categories, callback, parent, page);
+                    dropdown(player, activeSkin, rectangle,  callback, parent, page);
 
                 }
                 else
                 {
                     page += 1;
-                    dropdown(player, rectangle, categories, callback, parent, page);
+                    dropdown(player, activeSkin, rectangle,  callback, parent, page);
                    
                 }
             };
@@ -1037,12 +1028,12 @@ namespace Oxide.Plugins
                 if (page == 0)
                 {
                     page = ListOfCategories.Count - 1;
-                    dropdown(player, rectangle, categories, callback, parent, page);
+                    dropdown(player, activeSkin, rectangle,  callback, parent, page);
                 }
                 else
                 {
                     page -= 1;
-                    dropdown(player, rectangle, categories, callback, parent, page);
+                    dropdown(player, activeSkin, rectangle,  callback, parent, page);
                 }
             };
             if (ListOfCategories.Count > 1)
