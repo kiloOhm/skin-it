@@ -345,6 +345,7 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "dropdown", "https://i.imgur.com/8QZmPFq.png");
             guiCreator.registerImage(this, "popup_ADDNEW", "https://i.imgur.com/sryvzoF.png");
             guiCreator.registerImage(this, "popup_ADDNEWCATEGORY", "https://i.imgur.com/X9Q4Tyb.png");
+            guiCreator.registerImage(this, "popup_CHECKREQUESTS", "https://i.imgur.com/nF9s2J8.png");
 
 
             guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
@@ -565,6 +566,7 @@ namespace Oxide.Plugins
             GuiTracker.getGuiTracker(player).destroyGui(this, "categorySelection");
             GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupAddnew");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "popupReviewRequests");
             GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepOne");
             GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepTwo");
             GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepThree");
@@ -1075,23 +1077,34 @@ namespace Oxide.Plugins
         {
             GuiContainer containerGUI = new GuiContainer(this, "buttonsLeft", "background");
             containerGUI.addImage("add_image", new Rectangle(0, 5, 110, 110, 1920, 1080, true), "button_ADD", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-            Action<BasePlayer, string[]> popupAddnew = (bPlayer, input) =>
+            Action<BasePlayer, string[]> popupAddNew = (bPlayer, input) =>
             {
                 suggestNewStepOne(player);
             };
-            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddnew);
+            Action<BasePlayer, string[]> popupReviewRequests = (bPlayer, input) =>
+            {
+                reviewRequests(player);
+            };
+            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddNew);
 
             bool isStaff = isAdmin(player);
             int queueSum = requestData.requests.Count;
             if(isStaff == true)
             {
                 containerGUI.addImage("check_image", new Rectangle(0, 111, 110, 110, 1920, 1080, true), "button_CHECK", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                containerGUI.addPlainButton("check_button", new Rectangle(0, 111, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("check_button", new Rectangle(0, 111, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupCheckRequests);
                 containerGUI.addPanel("check_text", new Rectangle(72, 130, 39, 21, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(10, 10, 10, 0.0f), 0, 0, new GuiText($"{queueSum}", 12, new GuiColor(255, 255, 255, 0.6f), TextAnchor.MiddleLeft));
             }
             containerGUI.display(player);
         }
-
+        public void reviewRequests(BasePlayer player)
+        {
+            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupReviewRequests") == null)
+            {
+                destroyPopups(player);
+                GuiContainer containerGUI = new GuiContainer(this, "popupReviewRequests", "background");
+            }
+        }
         public void suggestNewStepOne(BasePlayer player)
         {
             if (GuiTracker.getGuiTracker(player).getContainer(this, "popupAddnew") == null)
