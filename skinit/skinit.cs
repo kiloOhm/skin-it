@@ -834,7 +834,8 @@ namespace Oxide.Plugins
                     activeSkin.name = input[0];
                     PluginInstance.saveSkinsData();
                     destroyPopups(player);
-                    previewPanel(player, virtualContainer.find(player).item, activeSkin);
+                    virtualContainer container = virtualContainer.find(player);
+                    onItemInserted(container, container.item);
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
@@ -913,7 +914,8 @@ namespace Oxide.Plugins
                     {
                         PluginInstance.changeSkinCategory(activeSkin, activeSelection);
                         destroyPopups(player);
-                        staffOnlyButtonsRight(player, activeSkin);
+                        virtualContainer container = virtualContainer.find(player);
+                        onItemInserted(container, container.item);
                     }
 
                 };
@@ -959,7 +961,8 @@ namespace Oxide.Plugins
             {
                 PluginInstance.changeSkinCategory(activeSkin, input[0]);
                 destroyPopups(player);
-                staffOnlyButtonsRight(player, activeSkin);
+                virtualContainer container = virtualContainer.find(player);
+                onItemInserted(container, container.item);
             };
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
             {
