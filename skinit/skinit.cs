@@ -103,7 +103,6 @@ namespace Oxide.Plugins
             }
         }
 
-
         [JsonObject(MemberSerialization.OptIn)]
         public class Category
         {
@@ -116,6 +115,7 @@ namespace Oxide.Plugins
             public bool perm = false;
             [JsonProperty(PropertyName = "Skins")]
             public List<Skin> skins = new List<skinit.Skin>();
+            public Skinnable skinnable => PluginInstance.skinsData.GetSkinnable(this.shortname);
 
             public Category(string name, string shortname)
             {
@@ -132,13 +132,14 @@ namespace Oxide.Plugins
             public string safename => Regex.Replace(name, " ", "_");
             [JsonProperty(PropertyName = "Category")]
             public string category;
-            public Category categoryInternal => PluginInstance.skinsData.GetCategory(PluginInstance.skinsData.GetSkinnable(shortname), category);
             [JsonProperty(PropertyName = "Item Shortname")]
             public string shortname;
             [JsonProperty(PropertyName = "Skin ID")]
             public ulong id;
             [JsonProperty(PropertyName = "Preview URL")]
             public string url;
+            public Skinnable skinnable => PluginInstance.skinsData.GetSkinnable(this.shortname);
+            public Category categoryObject => PluginInstance.skinsData.GetCategory(this.skinnable, this.category);
 
             public Skin(string name, string category, string shortname, ulong id, string url)
             {
@@ -305,6 +306,7 @@ namespace Oxide.Plugins
             //commands
             cmd.AddChatCommand(config.command, this, nameof(skinitCommand));
             cmd.AddChatCommand("test", this, nameof(testCommand));
+            cmd.AddConsoleCommand("skinit.test", this, nameof(testConsoleCommand));
             cmd.AddConsoleCommand("skinit.add", this, nameof(addCommand));
 
             //images
@@ -470,11 +472,11 @@ namespace Oxide.Plugins
                 }
                 else
                 {
-                    if (!hasPermission(player, item, activeSkin.categoryInternal))
+                    if(!hasPermission(player, item, activeSkin.categoryObject))
                     {
                         skinitButton(container, activeSkin, item, flag: buttonStates.noPermission);
                     }
-                    else if (getCost(player, item, activeSkin.categoryInternal) > getPoints(player))
+                    else if(getCost(player, item, activeSkin.categoryObject) > getPoints(player))
                     {
                         skinitButton(container, activeSkin, item, flag: buttonStates.cantAfford);
                     }
@@ -677,7 +679,7 @@ namespace Oxide.Plugins
 
             containerGUI.addImage("previewPicture", new Rectangle(1520, 66, 332, 333, 1920, 1080, true), skin.safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
             containerGUI.addPanel("previewPictureText", new Rectangle(1501, 399, 371, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skin.name}", 20, new GuiColor(255, 255, 255, 0.5f)));
-            containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {getCost(player, item, skin.categoryInternal)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {getCost(player, item, skin.categoryObject)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             containerGUI.display(player);
         }
 
@@ -1222,10 +1224,16 @@ namespace Oxide.Plugins
              return $"adding {IDs.Count} {((IDs.Count == 1)?"skin":"skins")}";
         }
 
+        private void testConsoleCommand(ConsoleSystem.Arg arg)
+        {
+            changeSkinCategory(skinsData.GetSkin(ulong.Parse(arg.Args[0])), arg.Args[1]);
+        }
+
         private void testCommand(BasePlayer player, string command, string[] args)
         {
 #if DEBUG
             player.ChatMessage("testing");
+            Puts("testing");
 #endif
             if(args[0] == "approve")
             {
@@ -1289,43 +1297,6 @@ namespace Oxide.Plugins
         {
             foreach(ulong ID in IDs)
             {
-                //Action<Skin> callback = (s) =>
-                //{
-                //    s.category = category;
-
-                //    Skinnable item = data.GetSkinnable(s.shortname);
-                //    if (item == null)
-                //    {
-                //        item = new Skinnable(s.shortname);
-                //        data.items.Add(item);
-                //    }
-                //    Category cat = data.GetCategory(item, s.category);
-                //    if (cat == null)
-                //    {
-                //        cat = new Category(s.category, s.shortname);
-                //        item.categories.Add(cat);
-                //    }
-                //    if (data.GetSkin(cat, s.id) == null)
-                //    {
-                //        cat.skins.Add(s);
-                //        guiCreator.registerImage(this, s.safename, s.url);
-                //    }
-                //    saveData();
-
-                //    if (cfg)
-                //    {
-                //        if (!config.skins.ContainsKey(s.shortname))
-                //        {
-                //            config.skins.Add(s.shortname, new Dictionary<string, List<ulong>>());
-                //        }
-                //        if (!config.skins[s.shortname].ContainsKey(category))
-                //        {
-                //            config.skins[s.shortname].Add(category, new List<ulong>());
-                //        }
-                //        if(!config.skins[s.shortname][category].Contains(s.id)) config.skins[s.shortname][category].Add(s.id);
-                //        SaveConfig();
-                //    }
-                //};
                 skinWebRequest(ID, (s) => addSkin(s, category, cfg));
             }
         }
@@ -1368,9 +1339,27 @@ namespace Oxide.Plugins
             }
         }
 
+        private void removeSkin(Skin skin)
+        {
+            config.skins[skin.shortname][skin.category].Remove(skin.id);
+            if (config.skins[skin.shortname][skin.category].Count == 0) config.skins[skin.shortname].Remove(skin.category);
+            if (config.skins[skin.shortname].Count == 0) config.skins.Remove(skin.shortname);
+            SaveConfig();
+            skin.categoryObject.skins.Remove(skin);
+            if (skin.categoryObject.skins.Count == 0) skin.skinnable.categories.Remove(skin.categoryObject);
+            if (skin.skinnable.categories.Count == 0) skinsData.items.Remove(skin.skinnable);
+            saveSkinsData();
+        }
+
+        private void changeSkinCategory(Skin skin, string newCategory)
+        {
+            removeSkin(skin);
+            addSkin(skin, newCategory);
+        }
+
         private bool buySkin(virtualContainer container, Item item, Skin skin)
         {
-            Category category = skin.categoryInternal;
+            Category category = skin.categoryObject;
             if (!canSkin(container.player, item, category)) return false;
             takePoints(container.player, getCost(container.player, item, category));
             Item newItem = applySkin(container, item, skin.id);
