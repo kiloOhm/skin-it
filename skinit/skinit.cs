@@ -345,12 +345,13 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "dropdown", "https://i.imgur.com/8QZmPFq.png");
             guiCreator.registerImage(this, "popup_ADDNEW", "https://i.imgur.com/sryvzoF.png");
             guiCreator.registerImage(this, "popup_ADDNEWCATEGORY", "https://i.imgur.com/X9Q4Tyb.png");
-            guiCreator.registerImage(this, "popup_CHECKREQUESTS", "https://i.imgur.com/nF9s2J8.png");
+            guiCreator.registerImage(this, "popup_CHECKREQUESTS", "https://i.imgur.com/jObsFrN.png");
+            guiCreator.registerImage(this, "requestButtons", "https://i.imgur.com/ns3JGeV.png");
 
 
             guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
             guiCreator.registerImage(this, "sad", "https://s3.amazonaws.com/pix.iemoji.com/images/emoji/apple/ios-12/256/loudly-crying-face.png");
-
+            
             //lang
             lang.RegisterMessages(messages, this);
 
@@ -1092,17 +1093,53 @@ namespace Oxide.Plugins
             if(isStaff == true)
             {
                 containerGUI.addImage("check_image", new Rectangle(0, 111, 110, 110, 1920, 1080, true), "button_CHECK", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                containerGUI.addPlainButton("check_button", new Rectangle(0, 111, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupCheckRequests);
+                containerGUI.addPlainButton("check_button", new Rectangle(0, 111, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupReviewRequests);
                 containerGUI.addPanel("check_text", new Rectangle(72, 130, 39, 21, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(10, 10, 10, 0.0f), 0, 0, new GuiText($"{queueSum}", 12, new GuiColor(255, 255, 255, 0.6f), TextAnchor.MiddleLeft));
             }
             containerGUI.display(player);
         }
         public void reviewRequests(BasePlayer player)
         {
+            string requestName = "Placeholder Name";
+            string requestCategory = "Placeholder Category";
+            string requestAuthor = "Placeholder Submitter";
+            string requestImage = "smile";
             if (GuiTracker.getGuiTracker(player).getContainer(this, "popupReviewRequests") == null)
             {
                 destroyPopups(player);
                 GuiContainer containerGUI = new GuiContainer(this, "popupReviewRequests", "background");
+                Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
+                {
+                    destroyPopups(player);
+                };
+                Action<BasePlayer, string[]> reject = (bPlayer, input) =>
+                {
+                    destroyPopups(player);
+                };
+                Action<BasePlayer, string[]> approve = (bPlayer, input) =>
+                {
+                    destroyPopups(player);
+                };
+
+                containerGUI.addImage("popup_CheckRequests", new Rectangle(492, 198, 918, 721, 1920, 1080, true), "popup_CHECKREQUESTS", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                containerGUI.addImage("requestImage", new Rectangle(762, 278, 398, 402, 1920, 1080, true), requestImage, GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                containerGUI.addImage("requestButtons", new Rectangle(682, 438, 551, 101, 1920, 1080, true), "requestButtons", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+
+                containerGUI.addPanel("requestName", new Rectangle(762, 695, 398, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestName}", 20, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPanel("requestCategory", new Rectangle(762, 759, 398, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestCategory}", 15, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPanel("requestAuthor", new Rectangle(762, 789, 398, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestAuthor}", 15, new GuiColor(255, 255, 255, 0.8f)));
+                
+                containerGUI.addPanel("header", new Rectangle(761, 213, 398, 65, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("REQUEST REVIEW", 25, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("reject", new Rectangle(691, 445, 89, 89, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0,0,0,0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0,0,0,0)), reject);
+                containerGUI.addPlainButton("approve", new Rectangle(1135, 445, 89, 89, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0,0,0,0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0,0,0,0)), approve);
+
+                containerGUI.addPlainButton("cancel", new Rectangle(761, 822, 398, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.display(player);
+
+            }
+            else
+            {
+                destroyPopups(player);
             }
         }
         public void suggestNewStepOne(BasePlayer player)
@@ -1381,7 +1418,7 @@ namespace Oxide.Plugins
                 {
                     if(category == "main")
                     {
-                        Dictionary<string, List<ulong>> newDict = new Dictionary<string, List<ulong>>;
+                        Dictionary<string, List<ulong>> newDict = new Dictionary<string, List<ulong>>();
                         newDict.Add(category, new List<ulong>());
                         foreach(string cat_ in config.skins[skin.shortname].Keys)
                         {
