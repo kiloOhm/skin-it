@@ -1125,9 +1125,9 @@ namespace Oxide.Plugins
                 containerGUI.addImage("requestImage", new Rectangle(762, 278, 398, 402, 1920, 1080, true), requestImage, GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
                 containerGUI.addImage("requestButtons", new Rectangle(682, 438, 551, 101, 1920, 1080, true), "requestButtons", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
 
-                containerGUI.addPanel("requestName", new Rectangle(762, 695, 398, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestName}", 20, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPanel("requestCategory", new Rectangle(762, 759, 398, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestCategory}", 15, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPanel("requestAuthor", new Rectangle(762, 789, 398, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestAuthor}", 15, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPanel("requestName", new Rectangle(762, 680, 398, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestName}", 20, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPanel("requestCategory", new Rectangle(762, 745, 398, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestCategory}", 15, new GuiColor(255, 255, 255, 0.5f)));
+                containerGUI.addPanel("requestAuthor", new Rectangle(762, 780, 398, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestAuthor}", 15, new GuiColor(255, 255, 255, 0.5f)));
                 
                 containerGUI.addPanel("header", new Rectangle(761, 213, 398, 65, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("REQUEST REVIEW", 25, new GuiColor(255, 255, 255, 0.8f)));
                 containerGUI.addPlainButton("reject", new Rectangle(691, 445, 89, 89, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0,0,0,0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0,0,0,0)), reject);
