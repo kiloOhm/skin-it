@@ -7,14 +7,11 @@ using Oxide.Core;
 using Oxide.Core.Configuration;
 using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
-using Rust.UI;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-// using TMPro;
 using UnityEngine;
 using static Oxide.Plugins.GUICreator;
 
@@ -70,17 +67,20 @@ namespace Oxide.Plugins
             {
                 this.userID = userID;
                 this.skinID = skinID;
+                this.category = "main";
                 Request instance = this;
                 PluginInstance.skinWebRequest(skinID, (skin) =>
                 {
                     instance.skin = skin;
                     PluginInstance.saveRequestsData();
+                    PluginInstance.guiCreator.registerImage(PluginInstance, skin.safename, skin.url);
                 });
             }
 
             public void approve(string category = null)
             {
                 PluginInstance.addSkin(skin, category);
+                PluginInstance.saveSkinsData();
             }
 
             public void returnToQueue()
@@ -129,7 +129,9 @@ namespace Oxide.Plugins
         {
             [JsonProperty(PropertyName = "Name")]
             public string name;
-            public string safename => Regex.Replace(name, " ", "_");
+            [JsonProperty(PropertyName = "original Name")]
+            public string title;
+            public string safename => Regex.Replace(title, " ", "_");
             [JsonProperty(PropertyName = "Category")]
             public string category;
             [JsonProperty(PropertyName = "Item Shortname")]
@@ -143,6 +145,7 @@ namespace Oxide.Plugins
 
             public Skin(string name, string category, string shortname, ulong id, string url)
             {
+                this.title = name;
                 this.name = name;
                 this.category = category;
                 this.shortname = shortname;
@@ -360,6 +363,15 @@ namespace Oxide.Plugins
             Unsubscribe(nameof(CanAcceptItem));
         }
 
+        void Unload()
+        {
+            foreach(BasePlayer player in BasePlayer.activePlayerList)
+            {
+                virtualContainer container = virtualContainer.find(player);
+                if (container != null) container.close();
+            }
+        }
+
         private void OnPlayerLootEnd(PlayerLoot loot)
         {
             var player = loot.gameObject.GetComponent<BasePlayer>();
@@ -421,7 +433,7 @@ namespace Oxide.Plugins
             if (container.player.IPlayer.HasPermission("skinit.tool")) sb.Append("tools ");
             if (container.player.IPlayer.HasPermission("skinit.weapon")) sb.Append("weapons ");
             string skinPermissions = sb.ToString().ToUpper();
-            skinPermissions.Trim();
+            skinPermissions =  skinPermissions.Trim();
             skinPermissions = Regex.Replace(skinPermissions, " ", ", ");
 #if DEBUG
             container.player.ChatMessage("sending UI");
@@ -805,8 +817,9 @@ namespace Oxide.Plugins
                 {
                     PluginInstance.removeSkin(skin);
                     destroyPopups(player);
-                    Item item = virtualContainer.find(player).item;
-                    sendCategories(player, item, PluginInstance.GetCategories(player, PluginInstance.skinsData.GetSkinnable(item.info.shortname)));
+                    virtualContainer container = virtualContainer.find(player);
+                    if (skinsData.GetSkinnable(container.item.info.shortname) != null) onItemInserted(container, container.item);
+                    else onItemRemoved(container, container.item);
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
@@ -844,9 +857,8 @@ namespace Oxide.Plugins
                         if (i != input.Length) newName.Append(" ");
                         i++;
                     }
-                    removeSkin(skin);
                     skin.name = newName.ToString();
-                    addSkin(skin, skin.category);
+                    saveSkinsData();
                     destroyPopups(player);
                     virtualContainer container = virtualContainer.find(player);
                     onItemInserted(container, container.item);
@@ -860,7 +872,7 @@ namespace Oxide.Plugins
                 GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
                 GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
                 containerGUI.addImage("popup_Rename", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_RENAME", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-                containerGUI.addInput("newname", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), confirm, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
+                containerGUI.addInput("newname", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), confirm, GuiContainer.Layer.overall, null, new GuiColor("white"), 24, new GuiText("", 20), 0, 0);
                 containerGUI.addPanel("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
                 containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0,0, 0), 0, 0, new GuiText("RENAME THIS SKIN", 20, new GuiColor(255, 255, 255, 0.8f)));
                 containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
@@ -1099,27 +1111,48 @@ namespace Oxide.Plugins
             }
             containerGUI.display(player);
         }
+
         public void reviewRequests(BasePlayer player)
         {
-            string requestName = "Placeholder Name";
-            string requestCategory = "Placeholder Category";
-            string requestAuthor = "Placeholder Submitter";
-            string requestImage = "smile";
+            Request request = requestData.getNextRequest();
+            if (request == null) return;
+
+            string requestName = request.skin.name;
+            string requestCategory = request.category;
+            string requestAuthor = BasePlayer.FindByID(request.userID).displayName;
+            string requestImage = request.skin.safename;
             if (GuiTracker.getGuiTracker(player).getContainer(this, "popupReviewRequests") == null)
             {
                 destroyPopups(player);
-                GuiContainer containerGUI = new GuiContainer(this, "popupReviewRequests", "background");
+                Action<BasePlayer> closeCallback = (bPlayer) =>
+                {
+                    //make sure to return request if admin just tabs out
+                    if(request != null)
+                    {
+#if DEBUG
+                        player.ChatMessage($"returning {request.skin.name} to queue!");
+#endif
+                        PluginInstance.requestData.returnRequest(request);
+                    }
+                    buttonsLeft(player);
+                };
+                GuiContainer containerGUI = new GuiContainer(this, "popupReviewRequests", "background", closeCallback);
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
                     destroyPopups(player);
                 };
                 Action<BasePlayer, string[]> reject = (bPlayer, input) =>
                 {
+                    request = null;
                     destroyPopups(player);
+                    reviewRequests(player);
                 };
                 Action<BasePlayer, string[]> approve = (bPlayer, input) =>
                 {
+                    request.approve(request.category);
+                    request = null;
                     destroyPopups(player);
+                    reviewRequests(player);
                 };
 
                 containerGUI.addImage("popup_CheckRequests", new Rectangle(492, 198, 918, 721, 1920, 1080, true), "popup_CHECKREQUESTS", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
@@ -1143,6 +1176,7 @@ namespace Oxide.Plugins
                 destroyPopups(player);
             }
         }
+
         public void suggestNewStepOne(BasePlayer player)
         {
             if (GuiTracker.getGuiTracker(player).getContainer(this, "popupAddnew") == null)
@@ -1151,8 +1185,17 @@ namespace Oxide.Plugins
                 GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
                 Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
                 {
-                    // test is used for the example string
-                    suggestNewStepTwo(player, "test");
+                    if (input == null) return;
+                    if (input.Length == 0) return;
+                    ulong skinID = 0;
+                    if (!ulong.TryParse(input[0], out skinID))
+                    {
+                        player.ChatMessage("not a valid SkinID!");
+                        return;
+                    }
+                    if (skinID == 0) return;
+                    Request request = new Request(bPlayer.userID, skinID);
+                    suggestNewStepTwo(player, request);
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
@@ -1172,7 +1215,8 @@ namespace Oxide.Plugins
                 destroyPopups(player);
             }
         }
-        public void suggestNewStepTwo(BasePlayer player, string skinID, bool dropDownActive = false)
+
+        public void suggestNewStepTwo(BasePlayer player, Request request, bool dropDownActive = false)
         {
             string activeSelection = "test";
                 GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
@@ -1183,6 +1227,8 @@ namespace Oxide.Plugins
                 };
             Action<BasePlayer, string[]> proceed = (bPlayer, input) =>
             {
+                request.category = activeSelection;
+                PluginInstance.requestData.addRequest(request);
                 suggestSuccess(player);
             };
             containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEWCATEGORY", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
@@ -1204,13 +1250,14 @@ namespace Oxide.Plugins
             containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
              containerGUI.addPlainButton("cancel", new Rectangle(688, 556, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
              containerGUI.display(player);
-            }
-        
+            } 
+
         public void suggestSuccess(BasePlayer player)
         {
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
             {
                 destroyPopups(player);
+                buttonsLeft(player);
             };
             GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
             containerGUI.addImage("popup_Addnew", new Rectangle(501, 450, 918, 243, 1920, 1080, true), "popup_PROMPT", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
@@ -1220,6 +1267,7 @@ namespace Oxide.Plugins
             containerGUI.addPlainButton("cancel", new Rectangle(800, 609, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
             containerGUI.display(player);
         }
+
         public void closeUI(virtualContainer container)
         {
 #if DEBUG
@@ -1842,7 +1890,8 @@ namespace Oxide.Plugins
 
             public Request getNextRequest()
             {
-                Request output = requests.Dequeue();
+                Request output = null;
+                requests.TryDequeue(out output);
                 PluginInstance.saveRequestsData();
                 return output;
             }
