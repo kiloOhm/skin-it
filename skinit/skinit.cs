@@ -2092,6 +2092,7 @@ namespace Oxide.Plugins
             {"Longsword", "longsword"},
             {"LR300", "rifle.lr300"},
             {"M249", "lmg.m249" },
+            {"M39", "rifle.m39" },
             {"Metal Chest Plate", "metal.plate.torso"},
             {"Metal Facemask", "metal.facemask"},
             {"Miner Hat", "hat.miner"},
