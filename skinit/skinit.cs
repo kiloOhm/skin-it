@@ -815,6 +815,7 @@ namespace Oxide.Plugins
                 Skin skin = activeSkin;
                 Action<BasePlayer, string[]> confirm = (bPlayer, input) =>
                 {
+                    guiCreator.customGameTip(player, $"removed {activeSkin.name}!", 2, gametipType.warning);
                     PluginInstance.removeSkin(skin);
                     destroyPopups(player);
                     virtualContainer container = virtualContainer.find(player);
@@ -857,6 +858,7 @@ namespace Oxide.Plugins
                         if (i != input.Length) newName.Append(" ");
                         i++;
                     }
+                    guiCreator.customGameTip(player, $"renamed {skin.name} to {newName}!", 2);
                     skin.name = newName.ToString();
                     saveSkinsData();
                     destroyPopups(player);
@@ -938,6 +940,7 @@ namespace Oxide.Plugins
                         addNewCategory(player, activeSkin);
                     } else
                     {
+                        guiCreator.customGameTip(player, $"moved {activeSkin.name} to {activeSelection}", 2);
                         PluginInstance.changeSkinCategory(activeSkin, activeSelection);
                         destroyPopups(player);
                         virtualContainer container = virtualContainer.find(player);
@@ -985,7 +988,16 @@ namespace Oxide.Plugins
             GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
             Action<BasePlayer, string[]> inputCallback = (Bplayer, input) => 
             {
-                PluginInstance.changeSkinCategory(activeSkin, input[0]);
+                StringBuilder newName = new StringBuilder();
+                int i = 1;
+                foreach (string s in input)
+                {
+                    newName.Append(s);
+                    if (i != input.Length) newName.Append(" ");
+                    i++;
+                }
+                guiCreator.customGameTip(player, $"moved {activeSkin.name} to {newName}", 2);
+                PluginInstance.changeSkinCategory(activeSkin, newName.ToString());
                 destroyPopups(player);
                 virtualContainer container = virtualContainer.find(player);
                 onItemInserted(container, container.item);
@@ -1150,6 +1162,7 @@ namespace Oxide.Plugins
                 Action<BasePlayer, string[]> approve = (bPlayer, input) =>
                 {
                     request.approve(request.category);
+                    guiCreator.customGameTip(player, $"added {request.skin.name} to {request.category}!", 2);
                     request = null;
                     destroyPopups(player);
                     reviewRequests(player);
@@ -1190,7 +1203,7 @@ namespace Oxide.Plugins
                     ulong skinID = 0;
                     if (!ulong.TryParse(input[0], out skinID))
                     {
-                        player.ChatMessage("not a valid SkinID!");
+                        guiCreator.customGameTip(player, "That's not a valid Skin ID!", 2, gametipType.error);
                         return;
                     }
                     if (skinID == 0) return;
@@ -1261,9 +1274,9 @@ namespace Oxide.Plugins
             };
             GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
             containerGUI.addImage("popup_Addnew", new Rectangle(501, 450, 918, 243, 1920, 1080, true), "popup_PROMPT", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-            containerGUI.addPanel("newnameheader", new Rectangle(755, 542, 394, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("Skin successfully suggested. You may view pending requests at any time.", 10, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPanel("newnameheader", new Rectangle(755, 542, 394, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("You may view pending requests at any time.", 10, new GuiColor(255, 255, 255, 0.8f)));
 
-            containerGUI.addPanel("header", new Rectangle(800, 477, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPanel("header", new Rectangle(800, 477, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SKIN SUGGESTED", 25, new GuiColor(255, 255, 255, 0.8f)));
             containerGUI.addPlainButton("cancel", new Rectangle(800, 609, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
             containerGUI.display(player);
         }
