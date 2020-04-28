@@ -351,7 +351,10 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "popup_CHECKREQUESTS", "https://i.imgur.com/jObsFrN.png");
             guiCreator.registerImage(this, "popup_PROMPT", "https://i.imgur.com/6qwc5Jr.png");
             guiCreator.registerImage(this, "requestButtons", "https://i.imgur.com/ns3JGeV.png");
+            guiCreator.registerImage(this, "popup_HISTORY", "https://i.imgur.com/0CaZijM.png");
 
+
+        
 
             guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
             guiCreator.registerImage(this, "sad", "https://s3.amazonaws.com/pix.iemoji.com/images/emoji/apple/ios-12/256/loudly-crying-face.png");
@@ -581,6 +584,7 @@ namespace Oxide.Plugins
             GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupAddnew");
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupReviewRequests");
+            GuiTracker.getGuiTracker(player).destroyGui(this, "popupPendingRequests");
             GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepOne");
             GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepTwo");
             GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepThree");
@@ -1229,6 +1233,10 @@ namespace Oxide.Plugins
                 {
                     destroyPopups(player);
                 };
+                Action<BasePlayer, string[]> yourRequests = (bPlayer, input) =>
+                {
+                    pendingRequests(player);
+                };
                 containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEW", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
                 containerGUI.addInput("newname", new Rectangle(572, 462, 379, 67, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
                 containerGUI.addPanel("newnameheader", new Rectangle(572, 416, 379, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 1: ENTER THE STEAM ID OF SKIN", 10, new GuiColor(255, 255, 255, 0.8f)));
@@ -1244,6 +1252,7 @@ namespace Oxide.Plugins
 
                 }
                 containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("viewRequestsButton", new Rectangle(740, 369, 433, 47, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0, 0, 0, 0)), yourRequests);
                 containerGUI.addPlainButton("cancel", new Rectangle(688, 643, 525, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
                 containerGUI.display(player);
             }
@@ -1340,6 +1349,27 @@ namespace Oxide.Plugins
              containerGUI.addPlainButton("cancel", new Rectangle(688, 556, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
              containerGUI.display(player);
             }
+
+        public void pendingRequests(BasePlayer player)
+        {
+            destroyPopups(player);
+            Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
+            {
+                destroyPopups(player);
+            };
+   
+
+            GuiContainer containerGUI = new GuiContainer(this, "popupPendingRequests", "background");
+
+            containerGUI.addImage("popup_pendingRequests", new Rectangle(385, 138, 1143, 813, 1920, 1080, true), "popup_HISTORY", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addPanel("header", new Rectangle(695, 162, 524, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PENDING REQUESTS", 25, new GuiColor(255, 255, 255, 0.8f)));
+
+            containerGUI.addPlainButton("cancel", new Rectangle(695, 859, 524, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+
+            containerGUI.display(player);
+
+
+        }
         public void addNewCategoryMiddle(BasePlayer player, Request request)
         {
             GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
