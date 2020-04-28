@@ -1201,11 +1201,14 @@ namespace Oxide.Plugins
             }
         }
 
-        public void suggestNewStepOne(BasePlayer player)
+        public void suggestNewStepOne(BasePlayer player, bool error = false, bool dontClose = false)
         {
-            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupAddnew") == null)
+            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupAddnew") == null || error == true || dontClose == true)
             {
-                destroyPopups(player);
+                if (error != true || dontClose != true)
+                {
+                    destroyPopups(player);
+                }
                 GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
                 Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
                 {
@@ -1214,8 +1217,8 @@ namespace Oxide.Plugins
                     ulong skinID = 0;
                     if (!ulong.TryParse(input[0], out skinID))
                     {
-                        // bunsen come back to this
-                        guiCreator.customGameTip(player, "That's not a valid Skin ID!", 2, gametipType.error);
+                        
+                        suggestNewStepOne(player, true);
                         return;
                     }
                     if (skinID == 0) return;
@@ -1229,8 +1232,17 @@ namespace Oxide.Plugins
                 containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEW", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
                 containerGUI.addInput("newname", new Rectangle(572, 462, 379, 67, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
                 containerGUI.addPanel("newnameheader", new Rectangle(572, 416, 379, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 1: ENTER THE STEAM ID OF SKIN", 10, new GuiColor(255, 255, 255, 0.8f)));
+                if (error == true)
+                {
+                    containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NOT A VALID SKIN ID", 15, new GuiColor(162, 51, 46, 0.8f)));
+                    timer.Once(0.5f, () => suggestNewStepOne(player, false, true));
 
-                containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+                }
+                else
+                {
+                    containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("PRESS ENTER TO PROCEED", 20, new GuiColor(134, 190, 41, 0.8f)));
+
+                }
                 containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
                 containerGUI.addPlainButton("cancel", new Rectangle(688, 643, 525, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
                 containerGUI.display(player);
@@ -1262,7 +1274,7 @@ namespace Oxide.Plugins
                 {
 
                     destroyPopups(player);
-                    //PLACEHOLDER COME BACK TO BUNSEN
+                    addNewCategoryMiddle(player, request);
                 } else {
                     request.category = activeSelection;
                     PluginInstance.requestData.addRequest(request);
@@ -1324,11 +1336,45 @@ namespace Oxide.Plugins
                 containerGUI.addPlainButton("confirm", new Rectangle(688, 478, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)), proceed);
 
             }
-            containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPanel("header", new Rectangle(755, 313, 373, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
              containerGUI.addPlainButton("cancel", new Rectangle(688, 556, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
              containerGUI.display(player);
             }
+        public void addNewCategoryMiddle(BasePlayer player, Request request)
+        {
+            GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
+            Action<BasePlayer, string[]> inputCallback = (Bplayer, input) =>
+            {
+                StringBuilder newName = new StringBuilder();
+                int i = 1;
+                foreach (string s in input)
+                {
 
+                    newName.Append(s);
+                    if (i != input.Length) newName.Append(" ");
+                    i++;
+                }
+                // uh put something here about taking this and putitng it in request thingy ma doozle
+
+                
+                destroyPopups(player);
+                gametip(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
+                virtualContainer container = virtualContainer.find(player);
+                onItemInserted(container, container.item);
+            };
+            Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
+            {
+                destroyPopups(player);
+            };
+            containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEWCATEGORY", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addPanel("newnameheader", new Rectangle(755, 371, 362, 26, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 2: CHOOSE A CATEGORY", 10, new GuiColor(255, 255, 255, 0.8f)));
+
+            containerGUI.addInput("newname", new Rectangle(755, 410, 373, 59, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
+            containerGUI.addPanel("confirm", new Rectangle(689, 482, 524, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+            containerGUI.addPanel("header", new Rectangle(755, 313, 373, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ADD A NEW CATEGORY", 20, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("cancel", new Rectangle(688, 559, 524, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+            containerGUI.display(player);
+        }
         public void gametip(BasePlayer player, string message, string header)
         {
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
