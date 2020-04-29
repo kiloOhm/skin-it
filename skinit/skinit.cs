@@ -519,6 +519,7 @@ namespace Oxide.Plugins
                 containerGUI.addPlainButton("checkout_success", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SUCCESS", 30, new GuiColor(134, 190, 41, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
+                    if (GuiTracker.getGuiTracker(player).getContainer(PluginInstance, "background") == null) return;
                     skinitButton(container);
                 });
             }
@@ -527,6 +528,7 @@ namespace Oxide.Plugins
                 containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU DON'T HAVE PERMISSION", 20, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
+                    if (GuiTracker.getGuiTracker(player).getContainer(PluginInstance, "background") == null) return;
                     skinitButton(container, activeSkin, item);
                 });
             }
@@ -535,6 +537,7 @@ namespace Oxide.Plugins
                 containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU CAN'T AFFORD THIS SKIN", 20, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
+                    if (GuiTracker.getGuiTracker(player).getContainer(PluginInstance, "background") == null) return;
                     skinitButton(container, activeSkin, item);
                 });
             }
@@ -543,6 +546,7 @@ namespace Oxide.Plugins
                 containerGUI.addPlainButton("checkout_attempt", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO SKIN SELECTED!", 30, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
+                    if (GuiTracker.getGuiTracker(player).getContainer(PluginInstance, "background") == null) return;
                     skinitButton(container);
                 });
             }
@@ -1490,11 +1494,11 @@ namespace Oxide.Plugins
                 buttonsLeft(player);
             };
             GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
-            containerGUI.addImage("popup_Addnew", new Rectangle(501, 377, 918, 243, 1920, 1080, true), "popup_PROMPT", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
-            containerGUI.addPanel("newnameheader", new Rectangle(755, 469, 394, 56, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(message, 10, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addImage("popup_Addnew", new Rectangle(501, 377, 918, 243, 1920, 1080, true), "popup_PROMPT", GuiContainer.Layer.overlay, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addPanel("newnameheader", new Rectangle(755, 469, 394, 56, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(message, 10, new GuiColor(255, 255, 255, 0.8f)));
 
-            containerGUI.addPanel("header", new Rectangle(800, 404, 318, 56, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(header, 25, new GuiColor(255, 255, 255, 0.8f)));
-            containerGUI.addPlainButton("cancel", new Rectangle(802, 536, 318, 56, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+            containerGUI.addPanel("header", new Rectangle(800, 404, 318, 56, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(header, 25, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("cancel", new Rectangle(802, 536, 318, 56, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
             containerGUI.display(player);
             
         }
@@ -1608,21 +1612,7 @@ namespace Oxide.Plugins
             player.ChatMessage("testing");
             Puts("testing");
 #endif
-            if(args[0] == "approve")
-            {
-                requestData.getNextRequest().approve("test");
-                return;
-            }
-            if(args[0] == "return")
-            {
-                Request req = requestData.getNextRequest();
-                timer.Once(10, () =>
-                {
-                    req.returnToQueue();
-                });
-                return;
-            }
-            if (requestData.addRequest(new Request(player.userID, ulong.Parse(args[0])))) player.ChatMessage("done");
+            Effect.server.Run(args[0], player.transform.position);
         }
         #endregion
 
@@ -2224,7 +2214,7 @@ namespace Oxide.Plugins
 
         private ConfigData getDefaultConfig()
         {
-            return new ConfigData
+            ConfigData output = new ConfigData
             {
                 command = "skinit",
                 defaultCatName = "main",
@@ -2237,21 +2227,22 @@ namespace Oxide.Plugins
                 costDeployable = 10,
                 costTool = 15,
                 costWeapon = 20,
-                skins = new Dictionary<string, Dictionary<string, List<ulong>>>
-                {
-                    {"rock", new Dictionary<string, List<ulong>>
-                        {
-                            { "main", new List<ulong>
-                                {
-                                    1530140666,
-                                    1435229543,
-                                    1636101879
-                                }
+            };
+            output.skins = new Dictionary<string, Dictionary<string, List<ulong>>>
+            {
+                {"rock", new Dictionary<string, List<ulong>>
+                    {
+                        { output.defaultCatName, new List<ulong>
+                            {
+                                1530140666,
+                                1435229543,
+                                1636101879
                             }
                         }
                     }
                 }
             };
+            return output;
         }
 
         protected override void LoadConfig()
