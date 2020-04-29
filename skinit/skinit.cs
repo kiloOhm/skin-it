@@ -352,9 +352,11 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "popup_PROMPT", "https://i.imgur.com/6qwc5Jr.png");
             guiCreator.registerImage(this, "requestButtons", "https://i.imgur.com/ns3JGeV.png");
             guiCreator.registerImage(this, "popup_HISTORY", "https://i.imgur.com/0CaZijM.png");
+            guiCreator.registerImage(this, "lock_unlock", "https://i.imgur.com/kfqmFTR.png");
+            guiCreator.registerImage(this, "lock_lock", "https://i.imgur.com/4Qx4tgi.png");
 
 
-        
+
 
             guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
             guiCreator.registerImage(this, "sad", "https://s3.amazonaws.com/pix.iemoji.com/images/emoji/apple/ios-12/256/loudly-crying-face.png");
@@ -711,6 +713,9 @@ namespace Oxide.Plugins
             double widthEach = maximumWidth / categoriesList.Count;
             double OriginX = 452;
             int fontSize = 15;
+            bool isStaff = true; // Placeholder to make category padlock appear 
+            bool categoryLock = true; // Placeholder to determine if padlock is locked or unlocked
+            string lockImage = "lock_lock";
 
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
             containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
@@ -718,13 +723,31 @@ namespace Oxide.Plugins
             foreach (Category Cat in categoriesList)
             {
                 double xSpacing = OriginX + (widthEach * i);
+                double xSpacingIndented = xSpacing+(widthEach*.05);
                 int index = i;
                 Action<BasePlayer, string[]> callback = (bPlayer, input) =>
                 {
                     sendCategories(bPlayer, item, categoriesList, index);
                 };
+                Action<BasePlayer, string[]> lockChange = (bPlayer, input) =>
+                {
+                    PrintToChat("lock");
+                };
+                if (isStaff == true)
+                {
+                    if (categoryLock == true)
+                    {
+                        lockImage = "lock_lock";
+                    } 
+                    else { lockImage = "lock_unlock"; }
+                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), "lock_lock", GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
+
+                    containerGUI.addPlainButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange);
+
+                }
                 if (i == activeCategory)
                 {
+
                     containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(134, 190, 41, 0.8f)), callback);
                 }
                 else
