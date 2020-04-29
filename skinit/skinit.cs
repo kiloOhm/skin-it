@@ -1390,7 +1390,7 @@ namespace Oxide.Plugins
             };
 
             if(requests == null) requests = requestData.getPendingRequests(player.userID);
-            if (requests == null)
+            if (requests.Count == 0)
             {
                 gametip(player, "You don't have any pending requests!", "NO PENDING REQUESTS");
                 return;
