@@ -67,7 +67,7 @@ namespace Oxide.Plugins
             {
                 this.userID = userID;
                 this.skinID = skinID;
-                this.category = "main";
+                this.category = config.defaultCatName;
             }
 
             public void init(Action<Skin> callback)
@@ -742,7 +742,7 @@ namespace Oxide.Plugins
                     toggleCategoryPerm(Cat);
                     sendCategories(player, item, categoriesList, activeCategory);
                 };
-                if (isStaff == true && Cat.name != "main")
+                if (isStaff == true && Cat.name != config.defaultCatName)
                 {
                     if (Cat.perm)
                     {
@@ -753,12 +753,12 @@ namespace Oxide.Plugins
                 if (i == activeCategory)
                 {
                     containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(134, 190, 41, 0.8f)), callback);
-                    if (isStaff == true && Cat.name != "main") containerGUI.addButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange, imgName: $"{lockImage}green");
+                    if (isStaff == true && Cat.name != config.defaultCatName) containerGUI.addButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange, imgName: $"{lockImage}green");
                 }
                 else
                 {
                     containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(255, 255, 255, 0.8f)), callback);
-                    if (isStaff == true && Cat.name != "main") containerGUI.addButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange, imgName: lockImage);
+                    if (isStaff == true && Cat.name != config.defaultCatName) containerGUI.addButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange, imgName: lockImage);
                 }
                 i++;
             }
@@ -1072,7 +1072,7 @@ namespace Oxide.Plugins
             if (skinnable == null)
             {
                 categories = new List<Category>();
-                categories.Add(new Category("main", activeSkin.shortname));
+                categories.Add(new Category(config.defaultCatName, activeSkin.shortname));
             }
             else categories = GetCategories(player, skinnable);
             List<string> categoriesString = new List<string>();
@@ -1149,6 +1149,7 @@ namespace Oxide.Plugins
           
         public void buttonsLeft(BasePlayer player)
         {
+            if (!config.allowSuggestions && !isAdmin(player)) return;
             GuiContainer containerGUI = new GuiContainer(this, "buttonsLeft", "background");
             containerGUI.addImage("add_image", new Rectangle(0, 5, 110, 110, 1920, 1080, true), "button_ADD", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
             Action<BasePlayer, string[]> popupAddNew = (bPlayer, input) =>
@@ -1203,14 +1204,15 @@ namespace Oxide.Plugins
             };
             Action<BasePlayer, string[]> reject = (bPlayer, input) =>
             {
+                LogToFile("suggestions", $"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")} [{player.userID}]{player.displayName} rejected {request.skinID}:{request.skin.name}", this);
                 request = null;
                 destroyPopups(player);
                 reviewRequests(player);
             };
             Action<BasePlayer, string[]> approve = (bPlayer, input) =>
             {
+                LogToFile("suggestions", $"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")} [{player.userID}]{player.displayName} approved {request.skinID}:{request.skin.name}, it was added to {request.category}", this);
                 request.approve(request.category);
-                    
                 request = null;
                 destroyPopups(player);
                 reviewRequests(player);
@@ -1591,7 +1593,7 @@ namespace Oxide.Plugins
             {
                 IDs.Add(ulong.Parse(args[i]));
             }
-            addSkins(IDs, (category == null)?"main":args[0]);
+            addSkins(IDs, (category == null)?config.defaultCatName:args[0]);
              return $"adding {IDs.Count} {((IDs.Count == 1)?"skin":"skins")}";
         }
 
@@ -1661,6 +1663,7 @@ namespace Oxide.Plugins
 
             container.itemContainer.itemList.Add(newItem);
             newItem.MarkDirty();
+            Effect.server.Run("assets/prefabs/deployable/repair bench/effects/skinchange_spraypaint.prefab", container.player.transform.position);
             return newItem;
         }
 
@@ -1679,7 +1682,7 @@ namespace Oxide.Plugins
                 Puts("addSkin: Skin is null!");
                 return;
             }
-            skin.category = category ?? "main";
+            skin.category = category ?? config.defaultCatName;
 
             Skinnable item = skinsData.GetSkinnable(skin.shortname);
             if (item == null)
@@ -1691,7 +1694,7 @@ namespace Oxide.Plugins
             if (cat == null)
             {
                 cat = new Category(skin.category, skin.shortname);
-                if(cat.name == "main")
+                if(cat.name == config.defaultCatName)
                 {
                     List<Category> newList = new List<Category>();
                     newList.Add(cat);
@@ -1718,7 +1721,7 @@ namespace Oxide.Plugins
                 }
                 if (!config.skins[skin.shortname].ContainsKey(category))
                 {
-                    if(category == "main")
+                    if(category == config.defaultCatName)
                     {
                         Dictionary<string, List<ulong>> newDict = new Dictionary<string, List<ulong>>();
                         newDict.Add(category, new List<ulong>());
@@ -2101,6 +2104,8 @@ namespace Oxide.Plugins
                 if (PluginInstance.skinsData.GetSkin(request.skinID) != null) return false;
                 if (getRequest(request.skinID) != null) return false;
                 if (getPendingRequests(request.userID).Count >= config.maxPeningReq) return false;
+                BasePlayer player = BasePlayer.FindByID(request.userID);
+                PluginInstance.LogToFile("suggestions", $"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")} [{player.userID}]{player.displayName} suggested {request.skinID}:{request.skin.name} for Category {request.category}", PluginInstance);
                 requests.Enqueue(request);
                 PluginInstance.saveRequestsData();
                 return true;
@@ -2182,6 +2187,12 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Chat Command")]
             public string command;
 
+            [JsonProperty(PropertyName = "Default Category Name")]
+            public string defaultCatName;
+
+            [JsonProperty(PropertyName = "Allow Suggestions")]
+            public bool allowSuggestions;
+
             [JsonProperty(PropertyName = "Use Server Rewards")]
             public bool useServerRewards;
 
@@ -2216,6 +2227,8 @@ namespace Oxide.Plugins
             return new ConfigData
             {
                 command = "skinit",
+                defaultCatName = config.defaultCatName,
+                allowSuggestions = true,
                 useServerRewards = true,
                 useEconomics = false,
                 hideCatsWithoutPerm = false,
@@ -2228,7 +2241,7 @@ namespace Oxide.Plugins
                 {
                     {"rock", new Dictionary<string, List<ulong>>
                         {
-                            { "main", new List<ulong>
+                            { config.defaultCatName, new List<ulong>
                                 {
                                     2061119719,
                                     2062928637,
