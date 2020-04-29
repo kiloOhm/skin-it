@@ -2227,7 +2227,7 @@ namespace Oxide.Plugins
             return new ConfigData
             {
                 command = "skinit",
-                defaultCatName = config.defaultCatName,
+                defaultCatName = "main",
                 allowSuggestions = true,
                 useServerRewards = true,
                 useEconomics = false,
