@@ -354,7 +354,8 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "popup_HISTORY", "https://i.imgur.com/0CaZijM.png");
             guiCreator.registerImage(this, "lock_unlock", "https://i.imgur.com/kfqmFTR.png");
             guiCreator.registerImage(this, "lock_lock", "https://i.imgur.com/4Qx4tgi.png");
-
+            guiCreator.registerImage(this, "lock_unlockgreen", "https://i.imgur.com/Qf0YMgO.png");
+            guiCreator.registerImage(this, "lock_lockgreen", "https://i.imgur.com/ubPxujj.png");
 
 
 
@@ -716,6 +717,7 @@ namespace Oxide.Plugins
             bool isStaff = true; // Placeholder to make category padlock appear 
             bool categoryLock = true; // Placeholder to determine if padlock is locked or unlocked
             string lockImage = "lock_lock";
+            string lockImageGreen = $"{lockImage}green";
 
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
             containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
@@ -723,7 +725,7 @@ namespace Oxide.Plugins
             foreach (Category Cat in categoriesList)
             {
                 double xSpacing = OriginX + (widthEach * i);
-                double xSpacingIndented = xSpacing+(widthEach*.05);
+                double xSpacingIndented = xSpacing+(widthEach*.025);
                 int index = i;
                 Action<BasePlayer, string[]> callback = (bPlayer, input) =>
                 {
@@ -740,18 +742,19 @@ namespace Oxide.Plugins
                         lockImage = "lock_lock";
                     } 
                     else { lockImage = "lock_unlock"; }
-                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), "lock_lock", GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
 
                     containerGUI.addPlainButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange);
 
                 }
                 if (i == activeCategory)
                 {
+                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), lockImageGreen, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
 
                     containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(134, 190, 41, 0.8f)), callback);
                 }
                 else
                 {
+                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), lockImage, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
                     containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(255, 255, 255, 0.8f)), callback);
                 }
                 i++;
