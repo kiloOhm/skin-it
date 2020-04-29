@@ -2,6 +2,7 @@
 
 #define DEBUG
 //#define DEBUG2
+using Facepunch.Extend;
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
@@ -9,6 +10,7 @@ using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -63,17 +65,24 @@ namespace Oxide.Plugins
 
             public Request() { }
 
-            public Request(ulong userID, ulong skinID)
+            public Request(ulong userID, ulong skinID, Action<Skin> callback = null)
             {
                 this.userID = userID;
                 this.skinID = skinID;
                 this.category = "main";
-                Request instance = this;
+            }
+
+            public void init(Action<Skin> callback)
+            {
                 PluginInstance.skinWebRequest(skinID, (skin) =>
                 {
-                    instance.skin = skin;
-                    PluginInstance.saveRequestsData();
-                    PluginInstance.guiCreator.registerImage(PluginInstance, skin.safename, skin.url);
+                    if (skin != null)
+                    {
+                        this.skin = skin;
+                        PluginInstance.saveRequestsData();
+                        PluginInstance.guiCreator.registerImage(PluginInstance, skin.safename, skin.url);
+                    }
+                    callback?.Invoke(skin);
                 });
             }
 
@@ -464,11 +473,11 @@ namespace Oxide.Plugins
             containerGUI.addImage("GUI_1_15", new Rectangle(663, 576, 562, 478, 1921, 1081, true), "GUI_1_7", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_16", new Rectangle(1358, 643, 81, 89, 1921, 1081, true), "GUI_1_9", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 557, 71, 1921, 1081, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
-            containerGUI.addImage("Text_1", new Rectangle(1334, 925, 460, 121, 1920, 1080, true), "Text_1", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
+            containerGUI.addImage("Text_1", new Rectangle(1334, 925, 460, 121, 1920, 1080, true), "Text_1", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
 
-            containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 18, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
+            containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 937, 471, 43, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 975, 471, 43, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 18, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_2", new Rectangle(1454, 629, 321, 115, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
             containerGUI.display(container.player);
             panelOneBackground(container.player);
 
@@ -508,7 +517,7 @@ namespace Oxide.Plugins
 
             if (flag == buttonStates.success)
             {
-                containerGUI.addPlainButton("checkout_success", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SUCCESS", 30, new GuiColor(134, 190, 41, 0.8f)));
+                containerGUI.addPlainButton("checkout_success", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SUCCESS", 30, new GuiColor(134, 190, 41, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
                     skinitButton(container);
@@ -516,7 +525,7 @@ namespace Oxide.Plugins
             }
             else if (flag == buttonStates.noPermission)
             {
-                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU DON'T HAVE PERMISSION", 20, new GuiColor(162, 51, 46, 0.8f)));
+                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU DON'T HAVE PERMISSION", 20, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
                     skinitButton(container, activeSkin, item);
@@ -524,7 +533,7 @@ namespace Oxide.Plugins
             }
             else if (flag == buttonStates.cantAfford)
             {
-                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU CAN'T AFFORD THIS SKIN", 20, new GuiColor(162, 51, 46, 0.8f)));
+                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU CAN'T AFFORD THIS SKIN", 20, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
                     skinitButton(container, activeSkin, item);
@@ -532,7 +541,7 @@ namespace Oxide.Plugins
             }
             else if (flag == buttonStates.noSelected)
             {
-                containerGUI.addPlainButton("checkout_attempt", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO SKIN SELECTED!", 30, new GuiColor(162, 51, 46, 0.8f)));
+                containerGUI.addPlainButton("checkout_attempt", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO SKIN SELECTED!", 30, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
                     skinitButton(container);
@@ -540,7 +549,7 @@ namespace Oxide.Plugins
             }
             else // The initial state when panelOne is launched;
             {
-                containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)), Skinit);
+                containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)), Skinit);
             }
             containerGUI.display(player);
         }
@@ -570,10 +579,10 @@ namespace Oxide.Plugins
         public void panelOneBackground(BasePlayer player) // also background for preview panel
         {
             GuiContainer containerGUI = new GuiContainer(this, "panelOneBackground", "background");
-            containerGUI.addImage("availableSkinsPanel", new Rectangle(452, 32, 1021, 451, 1920, 1080, true), "availableSkinsPanel", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
-            containerGUI.addImage("previewPanel", new Rectangle(1492, 32, 389, 451, 1920, 1080, true), "previewPanel", GuiContainer.Layer.overlay, null, FadeIn, FadeOut);
-            containerGUI.addPanel("previewPanelText", new Rectangle(1501, 0, 371, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PREVIEW", 30, new GuiColor(255, 255, 255, 0.5f)));
-            containerGUI.addPanel("availableSkinsPanelText", new Rectangle(696, 0, 534, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("AVAILABLE SKINS", 30, new GuiColor(255, 255, 255, 0.5f)));
+            containerGUI.addImage("availableSkinsPanel", new Rectangle(452, 32, 1021, 451, 1920, 1080, true), "availableSkinsPanel", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addImage("previewPanel", new Rectangle(1492, 32, 389, 451, 1920, 1080, true), "previewPanel", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
+            containerGUI.addPanel("previewPanelText", new Rectangle(1501, 0, 371, 74, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PREVIEW", 30, new GuiColor(255, 255, 255, 0.5f)));
+            containerGUI.addPanel("availableSkinsPanelText", new Rectangle(696, 0, 534, 74, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("AVAILABLE SKINS", 30, new GuiColor(255, 255, 255, 0.5f)));
             containerGUI.display(player);
         }
         #endregion
@@ -631,8 +640,8 @@ namespace Oxide.Plugins
                 {
                     xSpacing = OriginX + (widthEach * i);
                     OriginY = OriginY1;
-                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
+                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
 
                 }
@@ -640,16 +649,16 @@ namespace Oxide.Plugins
                 {
                     xSpacing = (OriginX + (widthEach * i)) - (widthEach * picturesEachRow);
                     OriginY = OriginY2;
-                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
+                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
                 }
                 else if (i < totalPictures)
                 {
                     xSpacing = (OriginX + (widthEach * i)) - ((widthEach * picturesEachRow) * 2);
                     OriginY = OriginY3;
-                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
+                    containerGUI.addImage($"picture{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), skinList[i].safename, GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                    containerGUI.addPlainButton($"button{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), callback);
 
                 }
                 i++;
@@ -686,8 +695,8 @@ namespace Oxide.Plugins
             };
             if (skinListOfLists.Count > 1)
             {
-                containerGUI.addPlainButton("goRight", new Rectangle(1437, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(">>", 25, new GuiColor(255, 255, 255, 0.8f)), GoRight);
-                containerGUI.addPlainButton("goLeft", new Rectangle(431, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("<<", 25, new GuiColor(255, 255, 255, 0.8f)), GoLeft);
+                containerGUI.addPlainButton("goRight", new Rectangle(1437, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(">>", 25, new GuiColor(255, 255, 255, 0.8f)), GoRight);
+                containerGUI.addPlainButton("goLeft", new Rectangle(431, 230, 56, 56, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("<<", 25, new GuiColor(255, 255, 255, 0.8f)), GoLeft);
             }
 
             containerGUI.display(player);
@@ -700,12 +709,12 @@ namespace Oxide.Plugins
 
             GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "panelOne");
 
-            containerGUI.addImage("previewPicture", new Rectangle(1520, 66, 332, 333, 1920, 1080, true), skin.safename, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
-            containerGUI.addPanel("previewPictureText", new Rectangle(1501, 399, 371, 74, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skin.name}", 20, new GuiColor(255, 255, 255, 0.5f)));
-            containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {getCost(player, item, skin.categoryObject)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
+            containerGUI.addImage("previewPicture", new Rectangle(1520, 66, 332, 333, 1920, 1080, true), skin.safename, GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+            containerGUI.addPanel("previewPictureText", new Rectangle(1501, 399, 371, 74, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skin.name}", 20, new GuiColor(255, 255, 255, 0.5f)));
+            containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {getCost(player, item, skin.categoryObject)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             containerGUI.display(player);
         }
-
+         
         public void sendCategories(BasePlayer player, Item item, List<Category> categoriesList, int activeCategory = 0)
         {
             double OriginY = 494;
@@ -720,7 +729,7 @@ namespace Oxide.Plugins
             string lockImageGreen = $"{lockImage}green";
 
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
-            containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             int i = 0;
             foreach (Category Cat in categoriesList)
             {
@@ -743,19 +752,19 @@ namespace Oxide.Plugins
                     } 
                     else { lockImage = "lock_unlock"; }
 
-                    containerGUI.addPlainButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange);
+                    containerGUI.addPlainButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange);
 
                 }
                 if (i == activeCategory)
                 {
-                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), lockImageGreen, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), lockImageGreen, GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
 
-                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(134, 190, 41, 0.8f)), callback);
+                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(134, 190, 41, 0.8f)), callback);
                 }
                 else
                 {
-                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), lockImage, GuiContainer.Layer.overlay, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.overlay, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(255, 255, 255, 0.8f)), callback);
+                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), lockImage, GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                    containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(255, 255, 255, 0.8f)), callback);
                 }
                 i++;
             }
@@ -820,14 +829,14 @@ namespace Oxide.Plugins
                 };
 
                 // Button to change category of skin
-                containerGUI.addImage("categories_image", new Rectangle(1539, 351, 67, 67, 1920, 1080, true), "button_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                containerGUI.addPlainButton("categories_button", new Rectangle(1539, 351, 67, 67, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), categorySkin);
+                containerGUI.addImage("categories_image", new Rectangle(1539, 351, 67, 67, 1920, 1080, true), "button_CATEGORIES", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                containerGUI.addPlainButton("categories_button", new Rectangle(1539, 351, 67, 67, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), categorySkin);
                 // Button to rename skin
-                containerGUI.addImage("rename_image", new Rectangle(1653, 354, 62, 62, 1920, 1080, true), "button_RENAME", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                containerGUI.addPlainButton("rename_button", new Rectangle(1653, 354, 62, 62, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), renameSkin);
+                containerGUI.addImage("rename_image", new Rectangle(1653, 354, 62, 62, 1920, 1080, true), "button_RENAME", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                containerGUI.addPlainButton("rename_button", new Rectangle(1653, 354, 62, 62, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), renameSkin);
                 // Button to remove skin
-                containerGUI.addImage("remove_image", new Rectangle(1765, 354, 62, 62, 1920, 1080, true), "button_REMOVE", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                containerGUI.addPlainButton("remove_button", new Rectangle(1765, 354, 62, 62, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), removeSkin);
+                containerGUI.addImage("remove_image", new Rectangle(1765, 354, 62, 62, 1920, 1080, true), "button_REMOVE", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                containerGUI.addPlainButton("remove_button", new Rectangle(1765, 354, 62, 62, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), removeSkin);
 
                 containerGUI.display(player);
             }
@@ -858,10 +867,10 @@ namespace Oxide.Plugins
                     destroyPopups(player);
                     staffOnlyButtonsRight(player, activeSkin);
                 };
-                containerGUI.addImage("popup_Remove", new Rectangle(1444, 417, 474, 211, 1920, 1080, true), "popup_REMOVE", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-                containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("REMOVE THIS SKIN?", 20, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPlainButton("cancel", new Rectangle(1502, 528, 163, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
-                containerGUI.addPlainButton("confirm", new Rectangle(1684, 528, 163, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YES", 20, new GuiColor(134, 190, 41, 0.8f)), confirm);
+                containerGUI.addImage("popup_Remove", new Rectangle(1444, 417, 474, 211, 1920, 1080, true), "popup_REMOVE", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+                containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("REMOVE THIS SKIN?", 20, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("cancel", new Rectangle(1502, 528, 163, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.addPlainButton("confirm", new Rectangle(1684, 528, 163, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YES", 20, new GuiColor(134, 190, 41, 0.8f)), confirm);
                 containerGUI.display(player);
             }
             else
@@ -871,7 +880,6 @@ namespace Oxide.Plugins
         }
 
         // Popup for when you click the rename button
-
         public void popupRename(BasePlayer player, Skin activeSkin)
         {
             if (GuiTracker.getGuiTracker(player).getContainer(this, "popupRename") == null)
@@ -907,11 +915,11 @@ namespace Oxide.Plugins
 
                 GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
                 GuiTracker.getGuiTracker(player).destroyGui(this, "popupCategories");
-                containerGUI.addImage("popup_Rename", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_RENAME", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-                containerGUI.addInput("newname", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), confirm, GuiContainer.Layer.overall, null, new GuiColor("white"), 24, new GuiText("", 20), 0, 0);
-                containerGUI.addPanel("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
-                containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0,0, 0), 0, 0, new GuiText("RENAME THIS SKIN", 20, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.addImage("popup_Rename", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_RENAME", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+                containerGUI.addInput("newname", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), confirm, GuiContainer.Layer.menu, null, new GuiColor("white"), 24, new GuiText("", 20), 0, 0);
+                containerGUI.addPanel("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+                containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0,0, 0), 0, 0, new GuiText("RENAME THIS SKIN", 20, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
                 containerGUI.display(player);
             } else
             {
@@ -987,29 +995,29 @@ namespace Oxide.Plugins
 
                 if (dropDownActive == false)
                 {
-                    containerGUI.addImage("arrow_image", new Rectangle(1772, 518, 119, 112, 1920, 1080, true), "arrow_down", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                    containerGUI.addImage("arrow_image", new Rectangle(1772, 518, 119, 112, 1920, 1080, true), "arrow_down", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
                 }
                 else
                 {
-                    containerGUI.addImage("arrow_image", new Rectangle(1772, 518, 119, 112, 1920, 1080, true), "arrow_up", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                    containerGUI.addImage("arrow_image", new Rectangle(1772, 518, 119, 112, 1920, 1080, true), "arrow_up", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
 
                 };
-                    containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-                containerGUI.addPlainButton("arrow_button", new Rectangle(1487, 541, 316, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0.5f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText(activeSelection, 15, new GuiColor(255, 255, 255, 0.8f)), triggerdropdown);
-                containerGUI.addPlainButton("dropdown_button", new Rectangle(1772, 518, 119, 112, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), triggerdropdown);
+                    containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+                containerGUI.addPlainButton("arrow_button", new Rectangle(1487, 541, 316, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0.5f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText(activeSelection, 15, new GuiColor(255, 255, 255, 0.8f)), triggerdropdown);
+                containerGUI.addPlainButton("dropdown_button", new Rectangle(1772, 518, 119, 112, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), triggerdropdown);
                 if (error == true)
                 {
-                    containerGUI.addPlainButton("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NO CATEGORY SELECTED", 15, new GuiColor(162, 51, 46, 0.8f)));
+                    containerGUI.addPlainButton("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NO CATEGORY SELECTED", 15, new GuiColor(162, 51, 46, 0.8f)));
                     timer.Once(0.5f, () => popupCategories(player, activeSkin));
 
                 }
                 else
                 {
-                    containerGUI.addPlainButton("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)), confirm);
+                    containerGUI.addPlainButton("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)), confirm);
 
                 }
-                containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PICK A NEW CATEGORY", 20, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PICK A NEW CATEGORY", 20, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
             
             containerGUI.display(player);
             } else if(dontClose==false)
@@ -1045,11 +1053,11 @@ namespace Oxide.Plugins
                 destroyPopups(player);
                 staffOnlyButtonsRight(player, activeSkin);
             };
-            containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-            containerGUI.addInput("newname", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
-            containerGUI.addPanel("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
-            containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ADD A NEW CATEGORY", 20, new GuiColor(255, 255, 255, 0.8f)));
-            containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+            containerGUI.addImage("popup_Categories", new Rectangle(1444, 417, 474, 361, 1920, 1080, true), "popup_CATEGORIES", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addInput("newname", new Rectangle(1488, 540, 371, 59, 1920, 1080, true), inputCallback, GuiContainer.Layer.menu, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
+            containerGUI.addPanel("confirm", new Rectangle(1488, 611, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+            containerGUI.addPanel("header", new Rectangle(1488, 469, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ADD A NEW CATEGORY", 20, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("cancel", new Rectangle(1488, 682, 371, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
             containerGUI.display(player);
         }
 
@@ -1065,12 +1073,19 @@ namespace Oxide.Plugins
             double leftButtonX = OriginX - 54;
             double buttonsOriginY = 151 + OriginYOld;
             double OriginY;
-            List<Oxide.Plugins.skinit.Category> categories = GetCategories(player, skinsData.GetSkinnable(activeSkin.shortname));
+            Skinnable skinnable = skinsData.GetSkinnable(activeSkin.shortname);
+            List<Category> categories = null;
+            if (skinnable == null)
+            {
+                categories = new List<Category>();
+                categories.Add(new Category("main", activeSkin.shortname));
+            }
+            else categories = GetCategories(player, skinnable);
             List<string> categoriesString = new List<string>();
-                foreach (Category cat in categories)
-                {
-                    categoriesString.Add(cat.name);
-                }
+            foreach (Category cat in categories)
+            {
+                categoriesString.Add(cat.name);
+            }
             if (categoriesString[0] == "Add a New Category") { }
             else
             {
@@ -1082,7 +1097,7 @@ namespace Oxide.Plugins
             GuiContainer containerGUI = new GuiContainer(this, "dropdown", "background");
             
 
-            containerGUI.addImage("dropdown_background", rectangle, "dropdown", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addImage("dropdown_background", rectangle, "dropdown", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
             int i = 0;
             foreach (string s in activeDropDown)
             {
@@ -1099,7 +1114,7 @@ namespace Oxide.Plugins
                 }
                 else { OriginY = OriginYOld; }
                 
-                containerGUI.addPlainButton($"dropdown_button{i}", new Rectangle(OriginX, OriginY, buttonWidth, buttonHeight, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText(activeDropDown[i], 15, new GuiColor(255, 255, 255, 0.8f)), selectCategory);
+                containerGUI.addPlainButton($"dropdown_button{i}", new Rectangle(OriginX, OriginY, buttonWidth, buttonHeight, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText(activeDropDown[i], 15, new GuiColor(255, 255, 255, 0.8f)), selectCategory);
                 i++;
             }
             Action<BasePlayer, string[]> goUp = (bPlayer, input) =>
@@ -1132,8 +1147,8 @@ namespace Oxide.Plugins
             };
             if (ListOfCategories.Count > 1)
             {
-                containerGUI.addPlainButton("goUp", new Rectangle(rightButtonX, buttonsOriginY, 46, 46, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(74, 29, 33, 1), FadeIn, FadeOut, new GuiText(">>", 20, new GuiColor(255, 255, 255, 0.5f)), goUp);
-                containerGUI.addPlainButton("goDown", new Rectangle(leftButtonX, buttonsOriginY, 46, 46, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(74, 29, 33, 1), FadeIn, FadeOut, new GuiText("<<", 20, new GuiColor(255, 255, 255, 0.5f)), goDown);
+                containerGUI.addPlainButton("goUp", new Rectangle(rightButtonX, buttonsOriginY, 46, 46, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(74, 29, 33, 1), FadeIn, FadeOut, new GuiText(">>", 20, new GuiColor(255, 255, 255, 0.5f)), goUp);
+                containerGUI.addPlainButton("goDown", new Rectangle(leftButtonX, buttonsOriginY, 46, 46, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(74, 29, 33, 1), FadeIn, FadeOut, new GuiText("<<", 20, new GuiColor(255, 255, 255, 0.5f)), goDown);
             }
             containerGUI.display(player);
         }
@@ -1141,7 +1156,7 @@ namespace Oxide.Plugins
         public void buttonsLeft(BasePlayer player)
         {
             GuiContainer containerGUI = new GuiContainer(this, "buttonsLeft", "background");
-            containerGUI.addImage("add_image", new Rectangle(0, 5, 110, 110, 1920, 1080, true), "button_ADD", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
+            containerGUI.addImage("add_image", new Rectangle(0, 5, 110, 110, 1920, 1080, true), "button_ADD", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
             Action<BasePlayer, string[]> popupAddNew = (bPlayer, input) =>
             {
                 suggestNewStepOne(player);
@@ -1150,21 +1165,22 @@ namespace Oxide.Plugins
             {
                 reviewRequests(player);
             };
-            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddNew);
+            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddNew);
 
             bool isStaff = isAdmin(player);
             int queueSum = requestData.requests.Count;
             if(isStaff == true)
             {
-                containerGUI.addImage("check_image", new Rectangle(0, 111, 110, 110, 1920, 1080, true), "button_CHECK", GuiContainer.Layer.overall, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                containerGUI.addPlainButton("check_button", new Rectangle(0, 111, 110, 110, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupReviewRequests);
-                containerGUI.addPanel("check_text", new Rectangle(72, 130, 39, 21, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(10, 10, 10, 0.0f), 0, 0, new GuiText($"{queueSum}", 12, new GuiColor(255, 255, 255, 0.6f), TextAnchor.MiddleLeft));
+                containerGUI.addImage("check_image", new Rectangle(0, 111, 110, 110, 1920, 1080, true), "button_CHECK", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                containerGUI.addPlainButton("check_button", new Rectangle(0, 111, 110, 110, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupReviewRequests);
+                containerGUI.addPanel("check_text", new Rectangle(72, 130, 39, 21, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(10, 10, 10, 0.0f), 0, 0, new GuiText($"{queueSum}", 12, new GuiColor(255, 255, 255, 0.6f), TextAnchor.MiddleLeft));
             }
             containerGUI.display(player);
         }
 
         public void reviewRequests(BasePlayer player)
         {
+            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupReviewRequests") != null) return;
             Request request = requestData.getNextRequest();
             if (request == null) return;
 
@@ -1172,63 +1188,54 @@ namespace Oxide.Plugins
             string requestCategory = request.category;
             string requestAuthor = BasePlayer.FindByID(request.userID).displayName;
             string requestImage = request.skin.safename;
-            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupReviewRequests") == null)
+
+            destroyPopups(player);
+            Action<BasePlayer> closeCallback = (bPlayer) =>
             {
-                destroyPopups(player);
-                Action<BasePlayer> closeCallback = (bPlayer) =>
+                //make sure to return request if admin just tabs out
+                if(request != null)
                 {
-                    //make sure to return request if admin just tabs out
-                    if(request != null)
-                    {
 #if DEBUG
-                        player.ChatMessage($"returning {request.skin.name} to queue!");
+                    player.ChatMessage($"returning {request.skin.name} to queue!");
 #endif
-                        PluginInstance.requestData.returnRequest(request);
-                    }
-                    buttonsLeft(player);
-                };
-                GuiContainer containerGUI = new GuiContainer(this, "popupReviewRequests", "background", closeCallback);
-                Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
-                {
-                    destroyPopups(player);
-                };
-                Action<BasePlayer, string[]> reject = (bPlayer, input) =>
-                {
-                    request = null;
-                    destroyPopups(player);
-                    reviewRequests(player);
-                };
-                Action<BasePlayer, string[]> approve = (bPlayer, input) =>
-                {
-                    request.approve(request.category);
-                    // gametip(player, $"The skin {activeSkin.name} has been moved to {activeSelection}.", "SKIN MOVED");
-                    
-                    request = null;
-                    destroyPopups(player);
-                    guiCreator.customGameTip(player, $"added {request.skin.name} to {request.category}!", 2);
-                    reviewRequests(player);
-                };
-
-                containerGUI.addImage("popup_CheckRequests", new Rectangle(492, 198, 918, 721, 1920, 1080, true), "popup_CHECKREQUESTS", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-                containerGUI.addImage("requestImage", new Rectangle(762, 278, 398, 402, 1920, 1080, true), requestImage, GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-                containerGUI.addImage("requestButtons", new Rectangle(682, 438, 551, 101, 1920, 1080, true), "requestButtons", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-
-                containerGUI.addPanel("requestName", new Rectangle(762, 680, 398, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestName}", 20, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPanel("requestCategory", new Rectangle(762, 740, 398, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestCategory}", 15, new GuiColor(255, 255, 255, 0.5f)));
-                containerGUI.addPanel("requestAuthor", new Rectangle(762, 780, 398, 30, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestAuthor}", 15, new GuiColor(255, 255, 255, 0.5f)));
-                
-                containerGUI.addPanel("header", new Rectangle(761, 213, 398, 65, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("REQUEST REVIEW", 25, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPlainButton("reject", new Rectangle(691, 445, 89, 89, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0,0,0,0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0,0,0,0)), reject);
-                containerGUI.addPlainButton("approve", new Rectangle(1135, 445, 89, 89, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0,0,0,0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0,0,0,0)), approve);
-
-                containerGUI.addPlainButton("cancel", new Rectangle(761, 822, 398, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
-                containerGUI.display(player);
-
-            }
-            else
+                    PluginInstance.requestData.returnRequest(request);
+                }
+                buttonsLeft(player);
+            };
+            GuiContainer containerGUI = new GuiContainer(this, "popupReviewRequests", "background", closeCallback);
+            Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
             {
                 destroyPopups(player);
-            }
+            };
+            Action<BasePlayer, string[]> reject = (bPlayer, input) =>
+            {
+                request = null;
+                destroyPopups(player);
+                reviewRequests(player);
+            };
+            Action<BasePlayer, string[]> approve = (bPlayer, input) =>
+            {
+                request.approve(request.category);
+                    
+                request = null;
+                destroyPopups(player);
+                reviewRequests(player);
+            };
+
+            containerGUI.addImage("popup_CheckRequests", new Rectangle(492, 198, 918, 721, 1920, 1080, true), "popup_CHECKREQUESTS", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addImage("requestImage", new Rectangle(762, 278, 398, 402, 1920, 1080, true), requestImage, GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addImage("requestButtons", new Rectangle(682, 438, 551, 101, 1920, 1080, true), "requestButtons", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+
+            containerGUI.addPanel("requestName", new Rectangle(762, 680, 398, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestName}", 20, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPanel("requestCategory", new Rectangle(762, 740, 398, 30, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestCategory}", 15, new GuiColor(255, 255, 255, 0.5f)));
+            containerGUI.addPanel("requestAuthor", new Rectangle(762, 780, 398, 30, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{requestAuthor}", 15, new GuiColor(255, 255, 255, 0.5f)));
+                
+            containerGUI.addPanel("header", new Rectangle(761, 213, 398, 65, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("REQUEST REVIEW", 25, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("reject", new Rectangle(691, 445, 89, 89, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0,0,0,0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0,0,0,0)), reject);
+            containerGUI.addPlainButton("approve", new Rectangle(1135, 445, 89, 89, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0,0,0,0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0,0,0,0)), approve);
+
+            containerGUI.addPlainButton("cancel", new Rectangle(761, 822, 398, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+            containerGUI.display(player);
         }
 
         public void suggestNewStepOne(BasePlayer player, bool error = false, bool dontClose = false)
@@ -1247,13 +1254,21 @@ namespace Oxide.Plugins
                     ulong skinID = 0;
                     if (!ulong.TryParse(input[0], out skinID))
                     {
-                        
                         suggestNewStepOne(player, true);
                         return;
                     }
                     if (skinID == 0) return;
                     Request request = new Request(bPlayer.userID, skinID);
-                    suggestNewStepTwo(player, request);
+                    Action<Skin> callback = (skin) =>
+                    {
+                        if(skin == null)
+                        {
+                            suggestNewStepOne(player, true);
+                            return;
+                        }
+                        else suggestNewStepTwo(player, request);
+                    };
+                    request.init(callback);
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
@@ -1263,23 +1278,23 @@ namespace Oxide.Plugins
                 {
                     pendingRequests(player);
                 };
-                containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEW", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-                containerGUI.addInput("newname", new Rectangle(572, 462, 379, 67, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
-                containerGUI.addPanel("newnameheader", new Rectangle(572, 416, 379, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 1: ENTER THE STEAM ID OF SKIN", 10, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEW", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+                containerGUI.addInput("newname", new Rectangle(572, 462, 379, 67, 1920, 1080, true), inputCallback, GuiContainer.Layer.menu, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
+                containerGUI.addPanel("newnameheader", new Rectangle(572, 416, 379, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 1: ENTER THE STEAM ID OF SKIN", 10, new GuiColor(255, 255, 255, 0.8f)));
                 if (error == true)
                 {
-                    containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NOT A VALID SKIN ID", 15, new GuiColor(162, 51, 46, 0.8f)));
+                    containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NOT A VALID SKIN ID", 15, new GuiColor(162, 51, 46, 0.8f)));
                     timer.Once(0.5f, () => suggestNewStepOne(player, false, true));
 
                 }
                 else
                 {
-                    containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("PRESS ENTER TO PROCEED", 20, new GuiColor(134, 190, 41, 0.8f)));
+                    containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("PRESS ENTER TO PROCEED", 20, new GuiColor(134, 190, 41, 0.8f)));
 
                 }
-                containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
-                containerGUI.addPlainButton("viewRequestsButton", new Rectangle(740, 369, 433, 47, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0, 0, 0, 0)), yourRequests);
-                containerGUI.addPlainButton("cancel", new Rectangle(688, 643, 525, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+                containerGUI.addPanel("header", new Rectangle(688, 315, 525, 60, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
+                containerGUI.addPlainButton("viewRequestsButton", new Rectangle(740, 369, 433, 47, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("", 20, new GuiColor(0, 0, 0, 0)), yourRequests);
+                containerGUI.addPlainButton("cancel", new Rectangle(688, 643, 525, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
                 containerGUI.display(player);
             }
             else
@@ -1325,77 +1340,117 @@ namespace Oxide.Plugins
 
             Action<BasePlayer, string[]> triggerdropdown = (bPlayer, input) =>
             {
-
-
                 if (dropDownActive == false)
                 {
                     suggestNewStepTwo(player, request, dropDownActive=true, activeSelection);
                     dropdown(player, request.skin, new Rectangle(716, 464, 446, 429, 1920, 1080, true), callback, "popupAddnew", OriginX: 772, OriginYOld: 488);
-                   
-
-
                 }
                 else
                 {
-
                     GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
                     dropDownActive = false;
                     suggestNewStepTwo(player, request, dropDownActive = false, activeSelection);
                 }
             };
-            containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEWCATEGORY", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEWCATEGORY", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
 
 
             if (dropDownActive == false)
                     {
-                        containerGUI.addImage("arrow_image", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), "arrow_down", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                        containerGUI.addImage("arrow_image", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), "arrow_down", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
                      }
                  else
                      {
-                        containerGUI.addImage("arrow_image", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), "arrow_up", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
+                        containerGUI.addImage("arrow_image", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), "arrow_up", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
 
                        };
-            containerGUI.addPlainButton("arrow_button", new Rectangle(755, 407, 316, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0.5f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText(activeSelection, 15, new GuiColor(255, 255, 255, 0.8f)), triggerdropdown);
-            containerGUI.addPlainButton("dropdown_button", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)),triggerdropdown);
+            containerGUI.addPlainButton("arrow_button", new Rectangle(755, 407, 316, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0.5f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText(activeSelection, 15, new GuiColor(255, 255, 255, 0.8f)), triggerdropdown);
+            containerGUI.addPlainButton("dropdown_button", new Rectangle(1040, 385, 119, 112, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)),triggerdropdown);
             
 
-            containerGUI.addPanel("newnameheader", new Rectangle(755, 371, 362, 26, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 2: CHOOSE A CATEGORY", 10, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPanel("newnameheader", new Rectangle(755, 371, 362, 26, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 2: CHOOSE A CATEGORY", 10, new GuiColor(255, 255, 255, 0.8f)));
             if (error == true)
             {
-                containerGUI.addPlainButton("confirm", new Rectangle(688, 478, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NO CATEGORY SELECTED", 15, new GuiColor(162, 51, 46, 0.8f)));
+                containerGUI.addPlainButton("confirm", new Rectangle(688, 478, 525, 60, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NO CATEGORY SELECTED", 15, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(0.5f, () => suggestNewStepTwo(player, request));
 
             }
             else
             {
-                containerGUI.addPlainButton("confirm", new Rectangle(688, 478, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)), proceed);
+                containerGUI.addPlainButton("confirm", new Rectangle(688, 478, 525, 60, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)), proceed);
 
             }
-            containerGUI.addPanel("header", new Rectangle(755, 313, 373, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
-             containerGUI.addPlainButton("cancel", new Rectangle(688, 556, 525, 60, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+            containerGUI.addPanel("header", new Rectangle(755, 313, 373, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("SUGGEST A SKIN", 25, new GuiColor(255, 255, 255, 0.8f)));
+             containerGUI.addPlainButton("cancel", new Rectangle(688, 556, 525, 60, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
              containerGUI.display(player);
             }
 
-        public void pendingRequests(BasePlayer player)
+        public void pendingRequests(BasePlayer player, List<Request> requests = null, int page = 0)
         {
             destroyPopups(player);
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
             {
                 destroyPopups(player);
             };
-   
+
+            if(requests == null) requests = requestData.getPendingRequests(player.userID);
+            if (requests == null)
+            {
+                gametip(player, "You don't have any pending requests!", "NO PENDING REQUESTS");
+                return;
+            }
+            int maxElements = 10;
+            List<List<Request>> ListOfLists = SplitIntoChunks<Request>(requests, maxElements);
+
+            Action<BasePlayer, string[]> lastPage = (bPlayer, input) =>
+            {
+                if (page <= 0) return;
+                pendingRequests(player, requests, page - 1);
+            };
+            Action<BasePlayer, string[]> nextPage = (bPlayer, input) =>
+            {
+                if (page + 1 >= ListOfLists.Count) return;
+                pendingRequests(player, requests, page + 1);
+            };
 
             GuiContainer containerGUI = new GuiContainer(this, "popupPendingRequests", "background");
 
-            containerGUI.addImage("popup_pendingRequests", new Rectangle(385, 138, 1143, 813, 1920, 1080, true), "popup_HISTORY", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-            containerGUI.addPanel("header", new Rectangle(695, 162, 524, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PENDING REQUESTS", 25, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addImage("popup_pendingRequests", new Rectangle(385, 138, 1143, 813, 1920, 1080, true), "popup_HISTORY", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addPanel("header", new Rectangle(695, 162, 524, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("PENDING REQUESTS", 25, new GuiColor(255, 255, 255, 0.8f)));
 
-            containerGUI.addPlainButton("cancel", new Rectangle(695, 859, 524, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+            containerGUI.addPlainButton("cancel", new Rectangle(695, 859, 524, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+            containerGUI.addPlainButton("lastPage", new Rectangle(604, 860, 61, 61, 1920, 1080, true), GuiContainer.Layer.menu, text: new GuiText("<<", 20, new GuiColor("white")), callback: lastPage);
+            containerGUI.addPlainButton("nextPage", new Rectangle(1250, 860, 61, 61, 1920, 1080, true), GuiContainer.Layer.menu, text: new GuiText(">>", 20, new GuiColor("white")), callback: nextPage);
+
+            int columns = 2;
+            int rows = 5;
+            Rectangle origin = new Rectangle(441, 236, 509, 106, 1920, 1080, true);
+            double gapX = 14;
+            double gapY = 19;
+
+            int count = 0;
+            for(int i = 0; i < columns; i++)
+            {
+                if (count >= ListOfLists[page].Count) break;
+                for (int j = 0; j < rows; j++)
+                {
+                    if (count >= ListOfLists[page].Count) break;
+                    Request req = ListOfLists[page][count];
+                    double X = origin.X + i * (origin.W + gapX);
+                    double Y = origin.Y + j * (origin.H + gapY);
+                    containerGUI.addPlainPanel($"{req.skinID}_parent", new Rectangle(X, Y, origin.W, origin.H, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0);
+                    containerGUI.addImage($"{req.skinID}_img", new Rectangle(0, 0, 108, 104, origin.W, origin.H, true), req.skin.safename, $"{req.skinID}_parent");
+                    containerGUI.addText($"{req.skinID}_name", new Rectangle(108, 0, 401, 53, origin.W, origin.H, true), new GuiText($"Skin: {req.skin.title}", 20, new GuiColor("white")), 0, 0, $"{req.skinID}_parent");
+                    containerGUI.addText($"{req.skinID}_cat", new Rectangle(108, 53, 401, 53, origin.W, origin.H, true), new GuiText($"Category: {req.category}", 20, new GuiColor("white")), 0, 0, $"{req.skinID}_parent");
+                    count++;
+                }
+            }
 
             containerGUI.display(player);
 
 
         }
+
         public void addNewCategoryMiddle(BasePlayer player, Request request)
         {
             GuiContainer containerGUI = new GuiContainer(this, "popupCategories", "background");
@@ -1405,14 +1460,13 @@ namespace Oxide.Plugins
                 int i = 1;
                 foreach (string s in input)
                 {
-
                     newName.Append(s);
                     if (i != input.Length) newName.Append(" ");
                     i++;
                 }
-                // uh put something here about taking this and putitng it in request thingy ma doozle
 
-                
+                request.category = newName.ToString();
+                PluginInstance.requestData.addRequest(request);
                 destroyPopups(player);
                 gametip(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
                 virtualContainer container = virtualContainer.find(player);
@@ -1422,15 +1476,16 @@ namespace Oxide.Plugins
             {
                 destroyPopups(player);
             };
-            containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEWCATEGORY", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-            containerGUI.addPanel("newnameheader", new Rectangle(755, 371, 362, 26, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 2: CHOOSE A CATEGORY", 10, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addImage("popup_Addnew", new Rectangle(501, 284, 918, 468, 1920, 1080, true), "popup_ADDNEWCATEGORY", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addPanel("newnameheader", new Rectangle(755, 371, 362, 26, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 2: CHOOSE A CATEGORY", 10, new GuiColor(255, 255, 255, 0.8f)));
 
-            containerGUI.addInput("newname", new Rectangle(755, 410, 373, 59, 1920, 1080, true), inputCallback, GuiContainer.Layer.overall, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
-            containerGUI.addPanel("confirm", new Rectangle(689, 482, 524, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
-            containerGUI.addPanel("header", new Rectangle(755, 313, 373, 59, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ADD A NEW CATEGORY", 20, new GuiColor(255, 255, 255, 0.8f)));
-            containerGUI.addPlainButton("cancel", new Rectangle(688, 559, 524, 61, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+            containerGUI.addInput("newname", new Rectangle(755, 410, 373, 59, 1920, 1080, true), inputCallback, GuiContainer.Layer.menu, null, new GuiColor("white"), 15, new GuiText("", 20), 0, 0);
+            containerGUI.addPanel("confirm", new Rectangle(689, 482, 524, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), 0, 0, new GuiText("PRESS ENTER TO CONFIRM", 20, new GuiColor(134, 190, 41, 0.8f)));
+            containerGUI.addPanel("header", new Rectangle(755, 313, 373, 59, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("ADD A NEW CATEGORY", 20, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("cancel", new Rectangle(688, 559, 524, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CANCEL", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
             containerGUI.display(player);
         }
+
         public void gametip(BasePlayer player, string message, string header)
         {
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
@@ -1439,16 +1494,16 @@ namespace Oxide.Plugins
                 buttonsLeft(player);
             };
             GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
-            containerGUI.addImage("popup_Addnew", new Rectangle(501, 377, 918, 243, 1920, 1080, true), "popup_PROMPT", GuiContainer.Layer.overall, null, FadeIn = 0, FadeIn = 0);
-            containerGUI.addPanel("newnameheader", new Rectangle(755, 469, 394, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(message, 10, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addImage("popup_Addnew", new Rectangle(501, 377, 918, 243, 1920, 1080, true), "popup_PROMPT", GuiContainer.Layer.menu, null, FadeIn = 0, FadeIn = 0);
+            containerGUI.addPanel("newnameheader", new Rectangle(755, 469, 394, 56, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(message, 10, new GuiColor(255, 255, 255, 0.8f)));
 
-            containerGUI.addPanel("header", new Rectangle(800, 404, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(header, 25, new GuiColor(255, 255, 255, 0.8f)));
-            containerGUI.addPlainButton("cancel", new Rectangle(802, 536, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
+            containerGUI.addPanel("header", new Rectangle(800, 404, 318, 56, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText(header, 25, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("cancel", new Rectangle(802, 536, 318, 56, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), cancel);
             containerGUI.display(player);
             
         }
 
-            public void closeUI(virtualContainer container)
+        public void closeUI(virtualContainer container)
         {
 #if DEBUG
             container.player.ChatMessage("closing UI");
@@ -1624,6 +1679,11 @@ namespace Oxide.Plugins
 
         private void addSkin(Skin skin, string category, bool cfg = true)
         {
+            if(skin == null)
+            {
+                Puts("addSkin: Skin is null!");
+                return;
+            }
             skin.category = category ?? "main";
 
             Skinnable item = skinsData.GetSkinnable(skin.shortname);
@@ -1909,17 +1969,20 @@ namespace Oxide.Plugins
                 if (answer?.response?.publishedfiledetails == null)
                 {
                     Puts("answer is null");
+                    callback(null);
                     return;
                 }
                 if(answer.response.publishedfiledetails[0]?.title == null)
                 {
                     Puts($"Skin ID {ID} doesn't exist!");
+                    callback(null);
                     return;
                 }
                 Puts($"got skin info: {(answer.response.publishedfiledetails[0].title)} for ID {ID}!");
                 if (answer.response.publishedfiledetails.Count < 1)
                 {
                     Puts("0 publishedfiledetails in response!");
+                    callback(null);
                     return;
                 }
                 publishedFile pf = answer.response.publishedfiledetails[0];
@@ -1935,6 +1998,7 @@ namespace Oxide.Plugins
                 if (shortname == null)
                 {
                     Puts("no shortname found in publishedfiledetails!");
+                    callback(null);
                     return;
                 }
                 Skin s = new Skin(pf.title, null, shortname, ulong.Parse(pf.publishedfileid), pf.preview_url);
