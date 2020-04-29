@@ -354,8 +354,8 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "popup_HISTORY", "https://i.imgur.com/0CaZijM.png");
             guiCreator.registerImage(this, "lock_unlock", "https://i.imgur.com/kfqmFTR.png");
             guiCreator.registerImage(this, "lock_lock", "https://i.imgur.com/4Qx4tgi.png");
-            guiCreator.registerImage(this, "lock_unlockgreen", "https://i.imgur.com/Qf0YMgO.png");
-            guiCreator.registerImage(this, "lock_lockgreen", "https://i.imgur.com/ubPxujj.png");
+            guiCreator.registerImage(this, "lock_unlockgreen", "https://i.imgur.com/ZMnJgDb.png");
+            guiCreator.registerImage(this, "lock_lockgreen", "https://i.imgur.com/Np52FK8.png");
 
 
 
