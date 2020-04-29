@@ -485,7 +485,7 @@ namespace Oxide.Plugins
         }
         #endregion
         #region UI parameters: Create "SKIN-IT" button and define what occurs on click
-        public enum buttonStates { idle, noSelected, noPermission, cantAfford, success };
+        public enum buttonStates { idle, noSelected, noPermission, cantAfford, redundant , success };
         public void skinitButton(virtualContainer container, Skin activeSkin = null, Item item = null, buttonStates flag = buttonStates.idle)
         {
             BasePlayer player = container.player;
@@ -494,6 +494,12 @@ namespace Oxide.Plugins
                 if (activeSkin == null || item == null)
                 {
                     skinitButton(container, flag: buttonStates.noSelected);
+                }
+                if (item.skin == activeSkin.id)
+                {
+                    PrintToChat(item.skin.ToString());
+                    skinitButton(container, activeSkin, item, skinit.buttonStates.redundant);
+                    return;
                 }
                 if (buySkin(container, item, activeSkin))
                 {
@@ -525,7 +531,8 @@ namespace Oxide.Plugins
             }
             else if (flag == buttonStates.noPermission)
             {
-                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU DON'T HAVE PERMISSION", 20, new GuiColor(162, 51, 46, 0.8f)));
+                Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
+                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO PERMISSION", 20, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
                     if (GuiTracker.getGuiTracker(player).getContainer(PluginInstance, "background") == null) return;
@@ -534,7 +541,8 @@ namespace Oxide.Plugins
             }
             else if (flag == buttonStates.cantAfford)
             {
-                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("YOU CAN'T AFFORD THIS SKIN", 20, new GuiColor(162, 51, 46, 0.8f)));
+                Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
+                containerGUI.addPlainButton("checkout_failure", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("CAN'T AFFORD", 20, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
                     if (GuiTracker.getGuiTracker(player).getContainer(PluginInstance, "background") == null) return;
@@ -543,6 +551,7 @@ namespace Oxide.Plugins
             }
             else if (flag == buttonStates.noSelected)
             {
+                Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
                 containerGUI.addPlainButton("checkout_attempt", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("NO SKIN SELECTED!", 30, new GuiColor(162, 51, 46, 0.8f)));
                 timer.Once(1f, () => // After a second launch panelOne again with default parameters
                 {
@@ -550,7 +559,17 @@ namespace Oxide.Plugins
                     skinitButton(container);
                 });
             }
-            else // The initial state when panelOne is launched;
+            else if(flag == skinit.buttonStates.redundant)
+            {
+                Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
+                containerGUI.addPlainButton("checkout_redundant", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("ALREADY HAS THIS!", 30, new GuiColor(162, 51, 46, 0.8f)));
+                timer.Once(1f, () => 
+                {
+                    if (GuiTracker.getGuiTracker(player).getContainer(PluginInstance, "background") == null) return;
+                    skinitButton(container);
+                });
+            }
+            else 
             {
                 containerGUI.addPlainButton("checkout", new Rectangle(1349, 831, 425, 84, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn = 0.05f, FadeOut = 0.05f, new GuiText("SKIN-IT!", 30, new GuiColor(134, 190, 41, 0.8f)), Skinit);
             }
@@ -739,6 +758,7 @@ namespace Oxide.Plugins
                 int index = i;
                 Action<BasePlayer, string[]> callback = (bPlayer, input) =>
                 {
+                    if (activeCategory == index) return;
                     sendCategories(bPlayer, item, categoriesList, index);
                 };
                 Action<BasePlayer, string[]> lockChange = (bPlayer, input) =>
@@ -1208,6 +1228,7 @@ namespace Oxide.Plugins
             };
             Action<BasePlayer, string[]> reject = (bPlayer, input) =>
             {
+                Effect.server.Run("assets/prefabs/food/bota bag/effects/bota-bag-cork-squeak.prefab", player.transform.position);
                 LogToFile("suggestions", $"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")} [{player.userID}]{player.displayName} rejected {request.skinID}:{request.skin.name}", this);
                 request = null;
                 destroyPopups(player);
@@ -1215,6 +1236,7 @@ namespace Oxide.Plugins
             };
             Action<BasePlayer, string[]> approve = (bPlayer, input) =>
             {
+                Effect.server.Run("assets/prefabs/deployable/research table/effects/research-success.prefab", player.transform.position);
                 LogToFile("suggestions", $"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")} [{player.userID}]{player.displayName} approved {request.skinID}:{request.skin.name}, it was added to {request.category}", this);
                 request.approve(request.category);
                 request = null;
@@ -1251,6 +1273,13 @@ namespace Oxide.Plugins
                 {
                     if (input == null) return;
                     if (input.Length == 0) return;
+                    if(PluginInstance.requestData.getPendingRequests(player.userID).Count >= config.maxPendingReq)
+                    {
+                        destroyPopups(player);
+                        gametip(player, "You can't suggest any more skins!", "MAX SUGGESTIONS");
+                        Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
+                        return;
+                    }
                     ulong skinID = 0;
                     if (!ulong.TryParse(input[0], out skinID))
                     {
@@ -1258,17 +1287,27 @@ namespace Oxide.Plugins
                         return;
                     }
                     if (skinID == 0) return;
+                    if(PluginInstance.skinsData.GetSkin(skinID) != null)
+                    {
+                        destroyPopups(player);
+                        gametip(player, "That skin is already included!", "SKIN INCLUDED");
+                        Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
+                        return;
+                    }
                     Request request = new Request(bPlayer.userID, skinID);
                     Action<Skin> callback = (skin) =>
                     {
                         if(skin == null)
                         {
-                            suggestNewStepOne(player, true);
+                            destroyPopups(player);
+                            gametip(player, "No Skin with this ID was found!", "SKIN DOESN'T EXIST");
+                            Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
                             return;
                         }
                         else suggestNewStepTwo(player, request);
                     };
                     request.init(callback);
+                    gametip(player, "Retrieving skin data from steam!", "PLEASE WAIT");
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
@@ -1283,6 +1322,7 @@ namespace Oxide.Plugins
                 containerGUI.addPanel("newnameheader", new Rectangle(572, 416, 379, 61, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("STEP 1: ENTER THE STEAM ID OF SKIN", 10, new GuiColor(255, 255, 255, 0.8f)));
                 if (error == true)
                 {
+                    Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
                     containerGUI.addPanel("confirm", new Rectangle(688, 565, 525, 60, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(65, 33, 32, 0.8f), FadeIn = 0.00f, FadeOut = 0.00f, new GuiText("NOT A VALID SKIN ID", 15, new GuiColor(162, 51, 46, 0.8f)));
                     timer.Once(0.5f, () => suggestNewStepOne(player, false, true));
 
@@ -1329,6 +1369,7 @@ namespace Oxide.Plugins
                     request.category = activeSelection;
                     PluginInstance.requestData.addRequest(request);
                     gametip(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
+                    Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.updated.prefab", player.transform.position);
                 }
 
             };
@@ -2093,7 +2134,7 @@ namespace Oxide.Plugins
             {
                 if (PluginInstance.skinsData.GetSkin(request.skinID) != null) return false;
                 if (getRequest(request.skinID) != null) return false;
-                if (getPendingRequests(request.userID).Count >= config.maxPeningReq) return false;
+                if (getPendingRequests(request.userID).Count >= config.maxPendingReq) return false;
                 BasePlayer player = BasePlayer.FindByID(request.userID);
                 PluginInstance.LogToFile("suggestions", $"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")} [{player.userID}]{player.displayName} suggested {request.skinID}:{request.skin.name} for Category {request.category}", PluginInstance);
                 requests.Enqueue(request);
@@ -2193,7 +2234,7 @@ namespace Oxide.Plugins
             public bool hideCatsWithoutPerm;
 
             [JsonProperty(PropertyName = "Maximum pending requests per player")]
-            public int maxPeningReq;
+            public int maxPendingReq;
 
             [JsonProperty(PropertyName = "Attire Cost")]
             public int costAttire;
@@ -2222,7 +2263,7 @@ namespace Oxide.Plugins
                 useServerRewards = true,
                 useEconomics = false,
                 hideCatsWithoutPerm = false,
-                maxPeningReq = 7,
+                maxPendingReq = 7,
                 costAttire = 5,
                 costDeployable = 10,
                 costTool = 15,
@@ -2306,6 +2347,7 @@ namespace Oxide.Plugins
             {"Double Barrel Shotgun", "shotgun.double"},
             {"Eoka Pistol", "pistol.eoka"},
             {"F1 Grenade", "grenade.f1"},
+            {"Furnace", "furnace" },
             {"Garage Door", "wall.frame.garagedoor"},
             {"Hammer", "hammer"},
             {"Hatchet", "hatchet"},
@@ -2361,7 +2403,8 @@ namespace Oxide.Plugins
             {"Wood Storage Box", "box.wooden"},
             {"Wooden Door", "door.hinged.wood"},
             {"Wooden Double Door", "door.double.hinged.wood"},
-            {"Work Boots", "shoes.boots"}
+            {"Work Boots", "shoes.boots"},
+            {"Boots Skin", "shoes.boots" }
         };
 
         #endregion
