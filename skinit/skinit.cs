@@ -2,7 +2,6 @@
 
 #define DEBUG
 //#define DEBUG2
-using Facepunch.Extend;
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
@@ -10,7 +9,6 @@ using Oxide.Core.Libraries;
 using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -422,6 +420,7 @@ namespace Oxide.Plugins
             if (item?.parent?.uid == vContainer.uid)
             {
                 onItemRemoved(vContainer, item);
+                vContainer.item = null;
                 return null;
             }
             if (vContainer.uid != container?.uid) return null;
@@ -706,13 +705,13 @@ namespace Oxide.Plugins
         #region UI parameters: Populate Preview Panel with Selected Skin from Available Skins
         public void previewPanel(BasePlayer player, Item item, Skin skin)
         {
-
             GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "panelOne");
 
             containerGUI.addImage("previewPicture", new Rectangle(1520, 66, 332, 333, 1920, 1080, true), skin.safename, GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
             containerGUI.addPanel("previewPictureText", new Rectangle(1501, 399, 371, 74, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skin.name}", 20, new GuiColor(255, 255, 255, 0.5f)));
             containerGUI.addPanel("Text_CostToSkin", new Rectangle(1349, 753, 426, 35, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"COST TO SKIN: {getCost(player, item, skin.categoryObject)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             containerGUI.display(player);
+            staffOnlyButtonsRight(player, skin);
         }
          
         public void sendCategories(BasePlayer player, Item item, List<Category> categoriesList, int activeCategory = 0)
@@ -723,10 +722,8 @@ namespace Oxide.Plugins
             double widthEach = maximumWidth / categoriesList.Count;
             double OriginX = 452;
             int fontSize = 15;
-            bool isStaff = true; // Placeholder to make category padlock appear 
-            bool categoryLock = true; // Placeholder to determine if padlock is locked or unlocked
+            bool isStaff = isAdmin(player); // Placeholder to make category padlock appear 
             string lockImage = "lock_lock";
-            string lockImageGreen = $"{lockImage}green";
 
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
             containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
@@ -742,29 +739,26 @@ namespace Oxide.Plugins
                 };
                 Action<BasePlayer, string[]> lockChange = (bPlayer, input) =>
                 {
-                    PrintToChat("lock");
+                    toggleCategoryPerm(Cat);
+                    sendCategories(player, item, categoriesList, activeCategory);
                 };
-                if (isStaff == true)
+                if (isStaff == true && Cat.name != "main")
                 {
-                    if (categoryLock == true)
+                    if (Cat.perm)
                     {
                         lockImage = "lock_lock";
                     } 
                     else { lockImage = "lock_unlock"; }
-
-                    containerGUI.addPlainButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange);
-
                 }
                 if (i == activeCategory)
                 {
-                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), lockImageGreen, GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
-
                     containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(67, 84, 37, 0.8f), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(134, 190, 41, 0.8f)), callback);
+                    if (isStaff == true && Cat.name != "main") containerGUI.addButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange, imgName: $"{lockImage}green");
                 }
                 else
                 {
-                    containerGUI.addImage($"padlockimage{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), lockImage, GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
                     containerGUI.addPlainButton($"category_{i}", new Rectangle(xSpacing, OriginY, widthEach, Height, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText(Cat.name.ToUpper(), fontSize, new GuiColor(255, 255, 255, 0.8f)), callback);
+                    if (isStaff == true && Cat.name != "main") containerGUI.addButton($"padlockbutton_{i}", new Rectangle(xSpacingIndented, OriginY, 25, 40, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn, FadeOut, new GuiText("", fontSize, new GuiColor(0, 0, 0, 0)), lockChange, imgName: lockImage);
                 }
                 i++;
             }
@@ -1513,6 +1507,7 @@ namespace Oxide.Plugins
 
         private void onItemInserted(virtualContainer container, Item item)
         {
+            container.item = item;
 #if DEBUG
             PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
