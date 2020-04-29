@@ -2241,11 +2241,11 @@ namespace Oxide.Plugins
                 {
                     {"rock", new Dictionary<string, List<ulong>>
                         {
-                            { config.defaultCatName, new List<ulong>
+                            { "main", new List<ulong>
                                 {
-                                    2061119719,
-                                    2062928637,
-                                    2030659199
+                                    1530140666,
+                                    1435229543,
+                                    1636101879
                                 }
                             }
                         }
