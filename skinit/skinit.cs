@@ -737,21 +737,27 @@ namespace Oxide.Plugins
             staffOnlyButtonsRight(player, skin);
         }
          
-        public void sendCategories(BasePlayer player, Item item, List<Category> categoriesList, int activeCategory = 0)
+        public void sendCategories(BasePlayer player, Item item, List<Category> categoriesList, int activeCategory = 0, int page = 0)
         {
             double OriginY = 494;
             double Height = 46;
             double maximumWidth = 1429;
-            double widthEach = maximumWidth / categoriesList.Count;
+            
             double OriginX = 452;
             int fontSize = 15;
             bool isStaff = isAdmin(player); // Placeholder to make category padlock appear 
             string lockImage = "lock_lock";
+            List<List<Category>> ListOfCategories = SplitIntoChunks<Category>(categoriesList, 5);
+            List<Category> activeCategoriesList = ListOfCategories[page];
+
+            double widthEach = maximumWidth / activeCategoriesList.Count;
+
 
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
             containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             int i = 0;
-            foreach (Category Cat in categoriesList)
+
+            foreach (Category Cat in activeCategoriesList)
             {
                 double xSpacing = OriginX + (widthEach * i);
                 double xSpacingIndented = xSpacing+(widthEach*.025);
@@ -759,13 +765,14 @@ namespace Oxide.Plugins
                 Action<BasePlayer, string[]> callback = (bPlayer, input) =>
                 {
                     if (activeCategory == index) return;
-                    sendCategories(bPlayer, item, categoriesList, index);
+                    sendCategories(bPlayer, item, categoriesList, index, page);
                 };
                 Action<BasePlayer, string[]> lockChange = (bPlayer, input) =>
                 {
                     toggleCategoryPerm(Cat);
-                    sendCategories(player, item, categoriesList, activeCategory);
+                    sendCategories(player, item, categoriesList, activeCategory, page);
                 };
+
                 if (isStaff == true && Cat.name != config.defaultCatName)
                 {
                     if (Cat.perm)
@@ -786,8 +793,33 @@ namespace Oxide.Plugins
                 }
                 i++;
             }
+            Action<BasePlayer, string[]> goUp = (bPlayer, input) =>
+            {
+                if (page + 1 == ListOfCategories.Count)
+                {
+                    page = 0;
+                }
+                else { page += 1; }
+                sendCategories(player, item, categoriesList, activeCategory, page);
+            };
+            Action<BasePlayer, string[]> goDown = (bPlayer, input) =>
+            {
+                if (page == 0)
+                {
+                    page = ListOfCategories.Count - 1;
+                }
+                else { page -= 1; }
+                sendCategories(player, item, categoriesList, activeCategory, page);
+            };
+            
+            if (ListOfCategories.Count > 1)
+            {
+                containerGUI.addPlainButton("goUp", new Rectangle(maximumWidth+OriginX, OriginY, 46, 46, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(74, 29, 33, 0), FadeIn, FadeOut, new GuiText(">>", 20, new GuiColor(255, 255, 255, 0.5f)), goUp);
+                containerGUI.addPlainButton("goDown", new Rectangle(OriginX-50, OriginY, 46, 46, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(74, 29, 33, 0), FadeIn, FadeOut, new GuiText("<<", 20, new GuiColor(255, 255, 255, 0.5f)), goDown);
+            } 
             containerGUI.display(player);
-            sendSkins(player, item, categoriesList[activeCategory]);
+            int whereYouAre = (page * 5) + activeCategory;
+            sendSkins(player, item, categoriesList[whereYouAre]);
 
         }
 
@@ -1262,8 +1294,13 @@ namespace Oxide.Plugins
 
         public void suggestNewStepOne(BasePlayer player, bool error = false, bool dontClose = false)
         {
-            if (GuiTracker.getGuiTracker(player).getContainer(this, "popupAddnew") == null || error == true || dontClose == true)
+            if (GuiTracker.getGuiTracker(player).getContainer(this, "background") == null)
             {
+                destroyPopups(player);
+            } // bunsen added this to fix bug
+            else if (GuiTracker.getGuiTracker(player).getContainer(this, "popupAddnew") == null || error == true || dontClose == true)
+            {
+ 
                 if (error != true || dontClose != true)
                 {
                     destroyPopups(player);
