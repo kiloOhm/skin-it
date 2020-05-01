@@ -928,6 +928,7 @@ namespace Oxide.Plugins
                 Skin skin = activeSkin;
                 Action<BasePlayer, string[]> confirm = (bPlayer, input) =>
                 {
+                    if (input.Length == 0) return;
                     StringBuilder newName = new StringBuilder();
                     int i = 1;
                     foreach(string s in input)
@@ -936,8 +937,6 @@ namespace Oxide.Plugins
                         if (i != input.Length) newName.Append(" ");
                         i++;
                     }
-                    
-                    
                     
                     destroyPopups(player);
                     gametip(player, $"Renamed {skin.name} to {newName}.", "SKIN RENAMED");
