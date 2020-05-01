@@ -2,7 +2,6 @@
 
 #define DEBUG
 //#define DEBUG2
-using Facepunch.Extend;
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
@@ -1151,6 +1150,11 @@ namespace Oxide.Plugins
             };
             Action<BasePlayer, string[]> popupReviewRequests = (bPlayer, input) =>
             {
+                if(PluginInstance.requestData.requests.Count == 0)
+                {
+                    gametip(player, "There are no pending suggestions!", "NO SUGGESTIONS");
+                    return;
+                }
                 reviewRequests(player);
             };
             containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddNew);
@@ -1228,10 +1232,14 @@ namespace Oxide.Plugins
                 
 
                 List<string> options = new List<string>();
-                foreach (Category cat in PluginInstance.GetCategories(player, request.skin.skinnable))
+                if (request.skin?.skinnable != null)
                 {
-                    options.Add(cat.name);
+                    foreach (Category cat in PluginInstance.GetCategories(player, request.skin.skinnable))
+                    {
+                        options.Add(cat.name);
+                    }
                 }
+                else options.Add(config.defaultCatName);
 
                 Action<string> changeCatCallback = (option) =>
                 {
@@ -1404,10 +1412,14 @@ namespace Oxide.Plugins
                     suggestNewStepTwo(player, request, dropDownActive=true, activeSelection);
                     //dropdown(player, request.skin, new Rectangle(716, 464, 446, 429, 1920, 1080, true), callback, "popupAddnew", OriginX: 772, OriginYOld: 488);
                     List<string> options = new List<string>();
-                    foreach (Category cat in GetCategories(player, request.skin.skinnable))
+                    if (request.skin?.skinnable != null)
                     {
-                        options.Add(cat.name);
+                        foreach (Category cat in GetCategories(player, request.skin.skinnable))
+                        {
+                            options.Add(cat.name);
+                        }
                     }
+                    else options.Add(config.defaultCatName);
                     Predicate<string> predicate = (input2) =>
                     {
                         if (options.Contains(input2)) return false;

@@ -2,6 +2,7 @@
 
 using Oxide.Core.Plugins;
 using Oxide.Game.Rust.Cui;
+using Rust;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("GUICreator", "OHM", "1.2.4")]
+    [Info("GUICreator", "OHM", "1.2.5")]
     [Description("GUICreator")]
     internal class GUICreator : RustPlugin
     {
@@ -38,6 +39,7 @@ namespace Oxide.Plugins
             lang.RegisterMessages(messages, this);
             cmd.AddConsoleCommand("gui.close", this, nameof(closeUi));
             cmd.AddConsoleCommand("gui.input", this, nameof(OnGuiInput));
+            cmd.AddConsoleCommand("gui.list", this, nameof(listContainers));
         }
 
         private void OnServerInitialized()
@@ -210,7 +212,7 @@ namespace Oxide.Plugins
             public enum Layer { overall, overlay, menu, hud, under };
 
             //Rust UI elements (inventory, Health, etc.) are between the hud and the menu layer
-            private List<string> layers = new List<string> { "Overall", "Overlay", "Hud.Menu", "Hud", "Under" };
+            public static List<string> layers = new List<string> { "Overall", "Overlay", "Hud.Menu", "Hud", "Under" };
 
             public void display(BasePlayer player)
             {
@@ -286,18 +288,18 @@ namespace Oxide.Plugins
             public void addPanel(string name, CuiRectTransformComponent rectangle, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, GuiText text = null, string imgName = null, bool blur = false)
             {
                 if (string.IsNullOrEmpty(name)) name = "panel";
-                else name = safeName(name);
+                else name = PluginInstance.encodeName(this, name);
                 purgeDuplicates(name);
 
                 if (string.IsNullOrEmpty(imgName))
                 {
-                    addPlainPanel(name, rectangle, parent, panelColor, FadeIn, FadeOut, blur);
+                    addPlainPanel(PluginInstance.decodeName(this, name), rectangle, parent, panelColor, FadeIn, FadeOut, blur);
                 }
                 else
                 {
-                    this.addImage(name, rectangle, imgName, parent, panelColor, FadeIn, FadeOut);
+                    this.addImage(PluginInstance.decodeName(this, name), rectangle, imgName, parent, panelColor, FadeIn, FadeOut);
                 }
-                if (text != null) this.addText(name + "_txt", new Rectangle(), text, FadeIn, FadeOut, name);
+                if (text != null) this.addText(PluginInstance.decodeName(this, name) + "_txt", new Rectangle(), text, FadeIn, FadeOut, PluginInstance.decodeName(this, name));
             }
 
             public void addPlainPanel(string name, CuiRectTransformComponent rectangle, Layer layer, GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, bool blur = false)
@@ -308,12 +310,12 @@ namespace Oxide.Plugins
             public void addPlainPanel(string name, CuiRectTransformComponent rectangle, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, bool blur = false)
             {
                 if (string.IsNullOrEmpty(name)) name = "plainPanel";
-                else name = safeName(name);
+                else name = PluginInstance.encodeName(this, name);
                 purgeDuplicates(name);
 
                 this.Add(new CuiElement
                 {
-                    Parent = parent,
+                    Parent = PluginInstance.encodeName(this, parent),
                     Name = name,
                     Components =
                 {
@@ -332,12 +334,12 @@ namespace Oxide.Plugins
             public void addImage(string name, CuiRectTransformComponent rectangle, string imgName, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0)
             {
                 if (string.IsNullOrEmpty(name)) name = "image";
-                else name = safeName(name);
+                else name = PluginInstance.encodeName(this, name); ;
                 purgeDuplicates(name);
 
                 this.Add(new CuiElement
                 {
-                    Parent = parent,
+                    Parent = PluginInstance.encodeName(this, parent),
                     Name = name,
                     Components =
                 {
@@ -356,12 +358,12 @@ namespace Oxide.Plugins
             public void addRawImage(string name, CuiRectTransformComponent rectangle, string imgData, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0)
             {
                 if (string.IsNullOrEmpty(name)) name = "image";
-                else name = safeName(name);
+                else name = PluginInstance.encodeName(this, name);
                 purgeDuplicates(name);
 
                 this.Add(new CuiElement
                 {
-                    Parent = parent,
+                    Parent = PluginInstance.encodeName(this, parent),
                     Name = name,
                     Components =
                 {
@@ -380,14 +382,14 @@ namespace Oxide.Plugins
             public void addText(string name, CuiRectTransformComponent rectangle, GuiText text = null, float FadeIn = 0, float FadeOut = 0, string parent = "Hud")
             {
                 if (string.IsNullOrEmpty(name)) name = "text";
-                else name = safeName(name);
+                else name = PluginInstance.encodeName(this, name);
                 purgeDuplicates(name);
                 
                 text.FadeIn = FadeIn;
 
                 this.Add(new CuiElement
                 {
-                    Parent = parent,
+                    Parent = PluginInstance.encodeName(this, parent),
                     Name = name,
                     Components =
                 {
@@ -406,17 +408,17 @@ namespace Oxide.Plugins
             public void addButton(string name, CuiRectTransformComponent rectangle, GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, GuiText text = null, Action<BasePlayer, string[]> callback = null, string close = null, bool CursorEnabled = true, string imgName = null, string parent = "Hud", bool blur = false)
             {
                 if (string.IsNullOrEmpty(name)) name = "button";
-                else name = safeName(name);
+                else name = PluginInstance.encodeName(this, name);
                 purgeDuplicates(name);
 
                 if (imgName != null)
                 {
-                    this.addImage(name, rectangle, imgName, parent, null, FadeIn, FadeOut);
-                    this.addPlainButton(name + "_btn", new Rectangle(), panelColor, FadeIn, FadeOut, text, callback, close, CursorEnabled, name);
+                    this.addImage(PluginInstance.decodeName(this, name), rectangle, imgName, parent, null, FadeIn, FadeOut);
+                    this.addPlainButton(PluginInstance.decodeName(this, name) + "_btn", new Rectangle(), panelColor, FadeIn, FadeOut, text, callback, close, CursorEnabled, PluginInstance.decodeName(this, name));
                 }
                 else
                 {
-                    this.addPlainButton(name, rectangle, panelColor, FadeIn, FadeOut, text, callback, close, CursorEnabled, parent, blur);
+                    this.addPlainButton(PluginInstance.decodeName(this, name), rectangle, panelColor, FadeIn, FadeOut, text, callback, close, CursorEnabled, parent, blur);
                 }
             }
 
@@ -428,7 +430,7 @@ namespace Oxide.Plugins
             public void addPlainButton(string name, CuiRectTransformComponent rectangle, GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, GuiText text = null, Action<BasePlayer, string[]> callback = null, string close = null, bool CursorEnabled = true, string parent = "Hud", bool blur = false)
             {
                 if (string.IsNullOrEmpty(name)) name = "plainButton";
-                else name = safeName(name);
+                else name = PluginInstance.encodeName(this, name);
                 purgeDuplicates(name);
 
                 StringBuilder closeString = new StringBuilder("");
@@ -441,7 +443,7 @@ namespace Oxide.Plugins
                 this.Add(new CuiElement
                 {
                     Name = name,
-                    Parent = parent,
+                    Parent = PluginInstance.encodeName(this, parent),
                     Components =
                     {
                         new CuiButtonComponent {Command = $"gui.input {plugin.Name} {this.name} {name}{closeString.ToString()}", FadeIn = FadeIn, Color = (panelColor != null) ? panelColor.getColorString() : "0 0 0 0", Material = blur?"assets/content/ui/uibackgroundblur-ingamemenu.mat":"Assets/Icons/IconMaterial.mat"},
@@ -450,12 +452,13 @@ namespace Oxide.Plugins
                     FadeOut = FadeOut
                 });
 
-                if(text != null) this.addText(name + "_txt", new CuiRectTransformComponent(), text, FadeIn, FadeOut, name);
+                if(text != null) this.addText(PluginInstance.decodeName(this, name) + "_txt", new CuiRectTransformComponent(), text, FadeIn, FadeOut, PluginInstance.decodeName(this, name));
 
                 if (CursorEnabled)
                 {
                     this.Add(new CuiElement()
                     {
+                        Name = PluginInstance.decodeName(this, name) + "_cursor",
                         Parent = name,
                         Components =
                     {
@@ -475,7 +478,7 @@ namespace Oxide.Plugins
             public void addInput(string name, CuiRectTransformComponent rectangle, Action<BasePlayer, string[]> callback, string parent = "Hud", string close = null, GuiColor panelColor = null, int charLimit = 100, GuiText text = null, float FadeIn = 0, float FadeOut = 0, bool isPassword = false, bool CursorEnabled = true, string imgName = null)
             {
                 if (string.IsNullOrEmpty(name)) name = "input";
-                else name = safeName(name);
+                else name = PluginInstance.encodeName(this, name);
                 purgeDuplicates(name);
 
                 StringBuilder closeString = new StringBuilder("");
@@ -487,7 +490,7 @@ namespace Oxide.Plugins
 
                 if (imgName != null || panelColor != null)
                 {
-                    this.addPanel(name, rectangle, parent, panelColor, FadeIn, FadeOut, null, imgName);
+                    this.addPanel(PluginInstance.decodeName(this, name), rectangle, parent, panelColor, FadeIn, FadeOut, null, imgName);
 
                     this.Add(new CuiInputField()
                     {
@@ -505,7 +508,7 @@ namespace Oxide.Plugins
                         RectTransform = rectangle,
                         CursorEnabled = CursorEnabled,
                         FadeOut = FadeOut
-                    }, parent, name);
+                    }, PluginInstance.encodeName(this, parent), name);
                 }
 
                 if (callback != null) this.registerCallback(name, callback);
@@ -515,7 +518,7 @@ namespace Oxide.Plugins
         public class GuiTracker : MonoBehaviour
         {
             private BasePlayer player;
-            private List<GuiContainer> activeGuiContainers = new List<GuiContainer>();
+            public List<GuiContainer> activeGuiContainers = new List<GuiContainer>();
 
             public static GuiTracker getGuiTracker(BasePlayer player)
             {
@@ -710,6 +713,18 @@ namespace Oxide.Plugins
 
         #region helpers
 
+        private string encodeName(GuiContainer container, string name)
+        {
+            if (GuiContainer.layers.Contains(name)) return name;
+            return $"{container.name}_{safeName(name)}";
+        }
+
+        private string decodeName(GuiContainer container, string name)
+        {
+            if (GuiContainer.layers.Contains(name)) return name;
+            return name.Substring(container.name.Length+1);
+        }
+
         public string getItemIcon(string shortname)
         {
             ItemDefinition itemDefinition = ItemManager.FindItemDefinition(shortname);
@@ -734,6 +749,27 @@ namespace Oxide.Plugins
         private void closeUi(ConsoleSystem.Arg arg)
         {
             GuiTracker.getGuiTracker(arg.Player()).destroyAllGui();
+        }
+
+        private void listContainers(ConsoleSystem.Arg arg)
+        {
+            BasePlayer player = arg.Player();
+            if (arg.Args != null) player = BasePlayer.FindByID(ulong.Parse(arg.Args[0]));
+            if (player == null) return;
+            GuiTracker tracker = GuiTracker.getGuiTracker(player);
+            if(tracker.activeGuiContainers.Count == 0)
+            {
+                SendReply(arg, "you don't have any active guiContainers!");
+                return;
+            }
+            foreach(GuiContainer container in tracker.activeGuiContainers)
+            {
+                SendReply(arg, $"Plugin: {container.plugin.Name}, Container: {container.name}, Parent: {container.parent}:");
+                foreach(CuiElement element in container)
+                {
+                    SendReply(arg, $"- Element: {element.Name}, Parent: {element.Parent}");
+                }
+            }
         }
 
         private void OnGuiInput(ConsoleSystem.Arg arg)
@@ -774,7 +810,7 @@ namespace Oxide.Plugins
             string inputName = args.Pop();
 
             bool closeContainer = false;
-            if (inputName == "close" || inputName == "close_btn") closeContainer = true;
+            if (inputName == encodeName(container, "close") || inputName == encodeName(container, "close_btn")) closeContainer = true;
 
             List<string> close = new List<string>();
             List<string> input = new List<string>();
