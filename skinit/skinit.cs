@@ -1,6 +1,6 @@
 ﻿// Requires: GUICreator
 
-#define DEBUG
+//#define DEBUG
 //#define DEBUG2
 using Newtonsoft.Json;
 using Oxide.Core;
@@ -239,6 +239,7 @@ namespace Oxide.Plugins
         {
             permission.RegisterPermission("skinit.use", this);
             permission.RegisterPermission("skinit.admin", this);
+            permission.RegisterPermission("skinit.free", this);
 
             permission.RegisterPermission("skinit.attire", this);
             permission.RegisterPermission("skinit.deployable", this);
@@ -1191,6 +1192,7 @@ namespace Oxide.Plugins
                     player.ChatMessage($"returning {request.skin.name} to queue!");
 #endif
                     PluginInstance.requestData.returnRequest(request);
+                    buttonsLeft(player);
                 }
             };
             GuiContainer containerGUI = new GuiContainer(this, "popupReviewRequests", "background", closeCallback);
@@ -1317,12 +1319,19 @@ namespace Oxide.Plugins
                     Request request = new Request(bPlayer.userID, skinID);
                     Action<Skin> callback = (skin) =>
                     {
-                        if(skin == null)
+                        GuiTracker tracker = GuiTracker.getGuiTracker(player);
+                        GuiContainer gametipContainer = tracker.getContainer(this, "gametip");
+                        if (gametipContainer != null) tracker.destroyGui(this, gametipContainer);
+                        if (skin == null)
                         {
                             destroyPopups(player);
                             gametip(player, "No Skin with this ID was found!", "SKIN DOESN'T EXIST");
                             Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
                             return;
+                        }
+                        else if(isAdmin(player))
+                        {
+                            reviewRequests(player, request);
                         }
                         else suggestNewStepTwo(player, request);
                     };
@@ -1365,9 +1374,6 @@ namespace Oxide.Plugins
 
         public void suggestNewStepTwo(BasePlayer player, Request request, bool dropDownActive = false, string activeSelection = "Click to Select a Category", bool error = false)
         {
-            GuiTracker tracker = GuiTracker.getGuiTracker(player);
-            GuiContainer gametipContainer = tracker.getContainer(this, "gametip");
-            if (gametipContainer != null) tracker.destroyGui(this, gametipContainer);
             GuiContainer containerGUI = new GuiContainer(this, "popupAddnew", "background");
 
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
@@ -1607,7 +1613,7 @@ namespace Oxide.Plugins
         }
 
         private void onItemRemoved(virtualContainer container, Item item)
-        {            PrintToChat($"OnItemInserted: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
+        {           
 #if DEBUG
             PrintToChat($"OnItemRemoved: container:{container.uid}, owner:{container?.player?.displayName}, item:{item?.amount} x {item?.info?.displayName?.english}");
 #endif
@@ -1651,6 +1657,7 @@ namespace Oxide.Plugins
 
         private void addCommand(ConsoleSystem.Arg arg)
         {
+            if (arg.Args == null) return;
             if(!arg.IsAdmin)
             {
                 BasePlayer player = arg.Player();
@@ -1879,7 +1886,8 @@ namespace Oxide.Plugins
 
         private int getCost(BasePlayer player, Item item, Category category)
         {
-            int cost = 0;
+            if (player.IPlayer.HasPermission("skinit.free")) return 0;
+            int cost;
             hasPermission(player, item, category, out cost);
             return cost;
         }
@@ -2365,6 +2373,7 @@ namespace Oxide.Plugins
             {"Armored Double Door", "door.double.hinged.toptier"},
             {"Balaclava", "mask.balaclava"},
             {"Bandana", "mask.bandana"},
+            {"Bearskin Rug", "rug.bear" },
             {"Beenie Hat", "hat.beenie"},
             {"Bolt Rifle", "rifle.bolt"},
             {"Bone Club", "bone.club"},
@@ -2372,10 +2381,11 @@ namespace Oxide.Plugins
             {"Boonie Hat", "hat.boonie"},
             {"Bucket Helmet", "bucket.helmet"},
             {"Burlap Headwrap", "burlap.headwrap"},
-            {"Burlap Pants", "burlap.headwrap"},
+            {"Burlap Pants", "burlap.trousers"},
             {"Burlap Shirt", "burlap.shirt"},
             {"Burlap Shoes", "burlap.shoes"},
             {"Cap", "hat.cap"},
+            {"Chair", "chair" },
             {"Coffee Can Helmet", "coffeecan.helmet"},
             {"Collared Shirt", "shirt.collared"},
             {"Combat Knife", "knife.combat"},
@@ -2386,6 +2396,7 @@ namespace Oxide.Plugins
             {"Double Barrel Shotgun", "shotgun.double"},
             {"Eoka Pistol", "pistol.eoka"},
             {"F1 Grenade", "grenade.f1"},
+            {"Fridge", "fridge" },
             {"Furnace", "furnace" },
             {"Garage Door", "wall.frame.garagedoor"},
             {"Hammer", "hammer"},
@@ -2393,12 +2404,13 @@ namespace Oxide.Plugins
             {"Hide Halterneck", "attire.hide.helterneck"},
             {"Hide Pants", "attire.hide.pants"},
             {"Hide Poncho", "attire.hide.poncho"},
-            {"Hide Shirt", "attire.hide.poncho"},
-            {"Hide Shoes", "attire.hide.poncho"},
+            {"Hide Shirt", "attire.hide.vest"},
+            {"Hide Shoes", "attire.hide.boots"},
             {"Hide Skirt", "attire.hide.skirt"},
             {"Hoodie", "hoodie"},
             {"Large Wood Box", "box.wooden.large"},
             {"Leather Gloves", "burlap.gloves"},
+            {"Locker", "locker" },
             {"Long TShirt", "tshirt.long"},
             {"Longsword", "longsword"},
             {"LR300", "rifle.lr300"},
@@ -2419,6 +2431,7 @@ namespace Oxide.Plugins
             {"Roadsign Vest", "roadsign.jacket"},
             {"Rock", "rock"},
             {"Rocket Launcher", "rocket.launcher"},
+            {"Rug", "rug" },
             {"Salvaged Hammer", "hammer.salvaged"},
             {"Salvaged Icepick", "icepick.salvaged"},
             {"Sandbag Barricade", "barricade.sandbags"},
@@ -2429,14 +2442,17 @@ namespace Oxide.Plugins
             {"Sheet Metal Double Door", "door.double.hinged.metal"},
             {"Shorts", "pants.shorts"},
             {"Sleeping Bag", "sleepingbag"},
+            { "Spinning Wheel", "spinner.wheel"},
             {"Snow Jacket", "jacket.snow"},
             {"Stone Hatchet", "stonehatchet"},
             {"Stone Pick Axe", "stone.pickaxe"},
             {"Sword", "salvaged.sword"},
+            {"Table", "table" },
             {"Tank Top", "shirt.tanktop"},
             {"Thompson", "smg.thompson"},
             {"TShirt", "tshirt"},
             {"Vagabond Jacket", "jacket"},
+            {"Vending Machine", "vending.machine"},
             {"Water Purifier", "water.purifier"},
             {"Waterpipe Shotgun", "shotgun.waterpipe"},
             {"Wood Storage Box", "box.wooden"},

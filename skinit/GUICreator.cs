@@ -1,8 +1,8 @@
 ﻿//#define DEBUG
 
+using Facepunch.Extend;
 using Oxide.Core.Plugins;
 using Oxide.Game.Rust.Cui;
-using Rust;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -576,7 +576,12 @@ namespace Oxide.Plugins
                 else
                 {
                     name = safeName(name);
-                    destroyGuiElement(plugin, container, name);
+                    List<CuiElement> eGarbage = new List<CuiElement>();
+                    destroyGuiElement(plugin, container, name, eGarbage);
+                    foreach (CuiElement element in eGarbage)
+                    {
+                        container.Remove(element);
+                    }
                 }
             }
 
@@ -593,9 +598,14 @@ namespace Oxide.Plugins
                         if (cont.parent == container.name) destroyGuiContainer(cont.plugin, cont, garbage);
                     }
                     container.closeCallback?.Invoke(player);
+                    List<CuiElement> eGarbage = new List<CuiElement>();
                     foreach (CuiElement element in container)
                     {
-                        destroyGuiElement(plugin, container, element.Name);
+                        destroyGuiElement(plugin, container, element.Name, eGarbage);
+                    }
+                    foreach(CuiElement element in eGarbage)
+                    {
+                        container.Remove(element);
                     }
                     foreach (Timer timer in container.timers)
                     {
@@ -606,7 +616,7 @@ namespace Oxide.Plugins
                 else PluginInstance.Puts($"destroyGui(container.name: {container.name}): no GUI containers found");
             }
 
-            private void destroyGuiElement(Plugin plugin, GuiContainer container, string name)
+            private void destroyGuiElement(Plugin plugin, GuiContainer container, string name, List<CuiElement> garbage)
             {
                 name = safeName(name);
 #if DEBUG
@@ -615,14 +625,21 @@ namespace Oxide.Plugins
                 if (container == null) return;
                 if (container.plugin != plugin) return;
                 if (string.IsNullOrEmpty(name)) return;
+                CuiElement target = null;
                 foreach (CuiElement element in container)
                 {
                     if (element.Parent == name)
                     {
                         CuiHelper.DestroyUi(player, element.Name);
+                        garbage.Add(element);
                     }
+                    if (element.Name == name) target = element;
                 }
-                CuiHelper.DestroyUi(player, name);
+                if (target == null) return;
+                CuiHelper.DestroyUi(player, target.Name);
+                garbage.Add(target);
+
+                
             }
 
             public void destroyAllGui(Plugin plugin)
