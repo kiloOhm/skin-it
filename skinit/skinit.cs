@@ -2,6 +2,7 @@
 
 //#define DEBUG
 //#define DEBUG2
+using Facepunch.Extend;
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
@@ -315,7 +316,11 @@ namespace Oxide.Plugins
             }
 
             //commands
-            cmd.AddChatCommand(config.command, this, nameof(skinitCommand));
+            foreach(string command in config.commands)
+            {
+                cmd.AddChatCommand(command, this, nameof(skinitCommand));
+            }
+            
             cmd.AddChatCommand("test", this, nameof(testCommand));
             cmd.AddConsoleCommand("skinit.test", this, nameof(testConsoleCommand));
             cmd.AddConsoleCommand("skinit.add", this, nameof(addCommand));
@@ -2262,8 +2267,8 @@ namespace Oxide.Plugins
 
         private class ConfigData
         {
-            [JsonProperty(PropertyName = "Chat Command")]
-            public string command;
+            [JsonProperty(PropertyName = "Chat Commands")]
+            public List<string> commands;
 
             [JsonProperty(PropertyName = "Default Category Name")]
             public string defaultCatName;
@@ -2304,7 +2309,7 @@ namespace Oxide.Plugins
         {
             ConfigData output = new ConfigData
             {
-                command = "skinit",
+                commands = new List<string> { "skinit", "skin" },
                 defaultCatName = "default",
                 allowSuggestions = true,
                 useServerRewards = true,
