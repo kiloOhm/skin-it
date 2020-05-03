@@ -2305,7 +2305,7 @@ namespace Oxide.Plugins
             ConfigData output = new ConfigData
             {
                 command = "skinit",
-                defaultCatName = "main",
+                defaultCatName = "default",
                 allowSuggestions = true,
                 useServerRewards = true,
                 useEconomics = false,
@@ -2358,7 +2358,6 @@ namespace Oxide.Plugins
         #region Localization
         Dictionary<string, string> messages = new Dictionary<string, string>()
         {
-            {"posOutput", "Player Coordinates: X:{0}, Y:{1}, Z:{2}"},
             {"noPermission", "You don't have permission to use this command!"}
         };
         #endregion
