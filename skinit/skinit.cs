@@ -440,7 +440,7 @@ namespace Oxide.Plugins
         float FadeIn = 0.2f;
         float FadeOut = 0.2f;
         #endregion
-        #region UI parameters: Intitialize UI, call relevant functions to start upon keyboard command
+        //Intitialize UI, call relevant functions to start upon keyboard command
         public void sendUI(virtualContainer container)
         {
             StringBuilder sb = new StringBuilder();
@@ -485,8 +485,8 @@ namespace Oxide.Plugins
             buttonsLeft(container.player);
             skinitButton(container);
         }
-        #endregion
-        #region UI parameters: Create "SKIN-IT" button and define what occurs on click
+
+        //Create "SKIN-IT" button and define what occurs on click
         public enum buttonStates { idle, noSelected, noPermission, cantAfford, redundant , success };
         public void skinitButton(virtualContainer container, Skin activeSkin = null, Item item = null, buttonStates flag = buttonStates.idle)
         {
@@ -577,8 +577,8 @@ namespace Oxide.Plugins
             }
             containerGUI.display(player);
         }
-        #endregion
-        #region UI parameters: Define a function which will split a list into lists of a given size (default = 30)
+
+        //Define a function which will split a list into lists of a given size (default = 30)
         public static List<List<T>> SplitIntoChunks<T>(List<T> list, int chunkSize = 30)
         {
             if (chunkSize <= 0)
@@ -598,8 +598,8 @@ namespace Oxide.Plugins
 
             return retVal;
         }
-        #endregion
-        #region UI parameters: Create background for the "Available Skins" and "Preview" panel
+
+        //Create background for the "Available Skins" and "Preview" panel
         public void panelOneBackground(BasePlayer player) // also background for preview panel
         {
             GuiContainer containerGUI = new GuiContainer(this, "panelOneBackground", "background");
@@ -609,8 +609,8 @@ namespace Oxide.Plugins
             containerGUI.addPanel("availableSkinsPanelText", new Rectangle(696, 0, 534, 74, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("AVAILABLE SKINS", 30, new GuiColor(255, 255, 255, 0.5f)));
             containerGUI.display(player);
         }
-        #endregion
-        #region UI parameters: Define a function which will destroy all popups upon call
+
+        //Define a function which will destroy all popups upon call
         public void destroyPopups(BasePlayer player)
         {
             GuiTracker.getGuiTracker(player).destroyGui(this, "popupRemove");
@@ -626,8 +626,8 @@ namespace Oxide.Plugins
             GuiTracker.getGuiTracker(player).destroyGui(this, "suggestNewStepThree");
 
         }
-        #endregion
-        #region UI parameters: Populate Available Skins with Pages of 30 Items Each and Right/Left Functionality
+
+        //Populate Available Skins with Pages of 30 Items Each and Right/Left Functionality
         public void availableSkins(BasePlayer player, Item item, List<List<Skin>> skinListOfLists, int activeSkin = 0, int page = 0)
         {
 
@@ -726,8 +726,8 @@ namespace Oxide.Plugins
             containerGUI.display(player);
 
         }
-        #endregion
-        #region UI parameters: Populate Preview Panel with Selected Skin from Available Skins
+
+        //Populate Preview Panel with Selected Skin from Available Skins
         public void previewPanel(BasePlayer player, Item item, Skin skin)
         {
             GuiContainer containerGUI = new GuiContainer(this, "previewPanel", "panelOne");
@@ -818,9 +818,8 @@ namespace Oxide.Plugins
             List<List<Skin>> ListOfLists = SplitIntoChunks<Skin>(category.skins, 30);
             availableSkins(player, item, ListOfLists);
         }
-        #endregion
-        #region UI parameters: Create staff-only buttons to the right
 
+        //Create staff-only buttons to the right
         public void staffOnlyButtonsRight(BasePlayer player, Skin activeSkin) // Creates buttons for staff only to see when clicking on an item
         {
             bool isStaff = isAdmin(player);
@@ -882,8 +881,7 @@ namespace Oxide.Plugins
             }
         }
 
-        #endregion
-        #region UI parameters: Define what happens when you click remove, rename, or recategorize buttons
+        //Define what happens when you click remove, rename, or recategorize buttons
         // Popup for when you click the remove button
         public void popupRemove(BasePlayer player, Skin activeSkin)
         {
@@ -897,7 +895,7 @@ namespace Oxide.Plugins
                     
                     PluginInstance.removeSkin(skin);
                     destroyPopups(player);
-                    gametip(player, $"Removed {activeSkin.name}", "SKIN REMOVED");
+                    prompt(player, $"Removed {activeSkin.name}", "SKIN REMOVED");
                     virtualContainer container = virtualContainer.find(player);
                     if (skinsData.GetSkinnable(container.item.info.shortname) != null) onItemInserted(container, container.item);
                     else onItemRemoved(container, container.item);
@@ -940,7 +938,7 @@ namespace Oxide.Plugins
                     }
                     
                     destroyPopups(player);
-                    gametip(player, $"Renamed {skin.name} to {newName}.", "SKIN RENAMED");
+                    prompt(player, $"Renamed {skin.name} to {newName}.", "SKIN RENAMED");
                     skin.name = newName.ToString();
                     saveSkinsData();
                     virtualContainer container = virtualContainer.find(player);
@@ -1019,7 +1017,7 @@ namespace Oxide.Plugins
 
                         PluginInstance.changeSkinCategory(activeSkin, activeSelection);
                         destroyPopups(player);
-                        gametip(player, $"The skin {activeSkin.name} has been moved to {activeSelection}.", "SKIN MOVED");
+                        prompt(player, $"The skin {activeSkin.name} has been moved to {activeSelection}.", "SKIN MOVED");
                         virtualContainer container = virtualContainer.find(player);
                         onItemInserted(container, container.item);
                 };
@@ -1057,8 +1055,7 @@ namespace Oxide.Plugins
             }
         }
 
-        #endregion
-
+        //general purpose dropdown
         public void dropdown(BasePlayer player, List<string> options, Rectangle rectangle, Action<string> callback, int page = 0, bool allowNew = false, Predicate<string> predicate = null)
         {
             if (allowNew) options.Add("(add new)");
@@ -1126,7 +1123,7 @@ namespace Oxide.Plugins
                 {
                     if (!predicate(newName.ToString()))
                     {
-                        gametip(player, "Your input is invalid!", "INVALID INPUT");
+                        prompt(player, "Your input is invalid!", "INVALID INPUT");
                         dropdownAddNew(player, rectangle, callback, predicate);
                         return;
                     }
@@ -1138,7 +1135,8 @@ namespace Oxide.Plugins
             container.addInput("dropdown_addNew_input", rectangle, inputCallback, GuiContainer.Layer.menu, null, new GuiColor("white"), 15, new GuiText("", color: new GuiColor("black")), 0, 0);
             container.display(player);
         }
-          
+        
+        //suggest and review suggestions buttons
         public void buttonsLeft(BasePlayer player)
         {
             if (!config.allowSuggestions && !isAdmin(player)) return;
@@ -1152,7 +1150,7 @@ namespace Oxide.Plugins
             {
                 if(PluginInstance.requestData.requests.Count == 0)
                 {
-                    gametip(player, "There are no pending suggestions!", "NO SUGGESTIONS");
+                    prompt(player, "There are no pending suggestions!", "NO SUGGESTIONS");
                     return;
                 }
                 reviewRequests(player);
@@ -1170,6 +1168,7 @@ namespace Oxide.Plugins
             containerGUI.display(player);
         }
 
+        //tinder style suggestion review panel
         public void reviewRequests(BasePlayer player, Request request = null)
         {
             if (GuiTracker.getGuiTracker(player).getContainer(this, "popupReviewRequests") != null) return;
@@ -1186,14 +1185,11 @@ namespace Oxide.Plugins
             Action<BasePlayer> closeCallback = (bPlayer) =>
             {
                 //make sure to return request if admin just tabs out
-                if(request != null)
-                {
+                if (request == null) return;
 #if DEBUG
-                    player.ChatMessage($"returning {request.skin.name} to queue!");
+                player.ChatMessage($"returning {request.skin.name} to queue!");
 #endif
-                    PluginInstance.requestData.returnRequest(request);
-                    buttonsLeft(player);
-                }
+                PluginInstance.requestData.returnRequest(request);
             };
             GuiContainer containerGUI = new GuiContainer(this, "popupReviewRequests", "background", closeCallback);
             Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
@@ -1277,6 +1273,7 @@ namespace Oxide.Plugins
             containerGUI.display(player);
         }
 
+        //suggestion
         public void suggestNewStepOne(BasePlayer player, bool error = false, bool dontClose = false)
         {
             if (GuiTracker.getGuiTracker(player).getContainer(this, "background") == null)
@@ -1298,7 +1295,7 @@ namespace Oxide.Plugins
                     if(PluginInstance.requestData.getPendingRequests(player.userID).Count >= config.maxPendingReq)
                     {
                         destroyPopups(player);
-                        gametip(player, "You can't suggest any more skins!", "MAX SUGGESTIONS");
+                        prompt(player, "You can't suggest any more skins!", "MAX SUGGESTIONS");
                         Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
                         return;
                     }
@@ -1312,7 +1309,7 @@ namespace Oxide.Plugins
                     if(PluginInstance.skinsData.GetSkin(skinID) != null)
                     {
                         destroyPopups(player);
-                        gametip(player, "That skin is already included!", "SKIN INCLUDED");
+                        prompt(player, "That skin is already included!", "SKIN INCLUDED");
                         Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
                         return;
                     }
@@ -1325,7 +1322,7 @@ namespace Oxide.Plugins
                         if (skin == null)
                         {
                             destroyPopups(player);
-                            gametip(player, "No Skin with this ID was found!", "SKIN DOESN'T EXIST");
+                            prompt(player, "No Skin with this ID was found!", "SKIN DOESN'T EXIST");
                             Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
                             return;
                         }
@@ -1336,7 +1333,7 @@ namespace Oxide.Plugins
                         else suggestNewStepTwo(player, request);
                     };
                     request.init(callback);
-                    gametip(player, "Retrieving skin data from steam!", "PLEASE WAIT");
+                    prompt(player, "Retrieving skin data from steam!", "PLEASE WAIT");
                 };
                 Action<BasePlayer, string[]> cancel = (bPlayer, input) =>
                 {
@@ -1397,7 +1394,7 @@ namespace Oxide.Plugins
                 else {
                     request.category = activeSelection;
                     PluginInstance.requestData.addRequest(request);
-                    gametip(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
+                    prompt(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
                     Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.updated.prefab", player.transform.position);
                     destroyPopups(player);
                     buttonsLeft(player);
@@ -1483,7 +1480,7 @@ namespace Oxide.Plugins
             if(requests == null) requests = requestData.getPendingRequests(player.userID);
             if (requests.Count == 0)
             {
-                gametip(player, "You don't have any pending requests!", "NO PENDING REQUESTS");
+                prompt(player, "You don't have any pending requests!", "NO PENDING REQUESTS");
                 return;
             }
             int maxElements = 10;
@@ -1555,7 +1552,7 @@ namespace Oxide.Plugins
                 request.category = newName.ToString();
                 PluginInstance.requestData.addRequest(request);
                 destroyPopups(player);
-                gametip(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
+                prompt(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
                 Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.updated.prefab", player.transform.position);
                 buttonsLeft(player);
             };
@@ -1573,7 +1570,8 @@ namespace Oxide.Plugins
             containerGUI.display(player);
         }
 
-        public void gametip(BasePlayer player, string message, string header)
+        //general purpose prompt
+        public void prompt(BasePlayer player, string message, string header)
         {
             Action<BasePlayer, string[]> closeCallback = (bPlayer, input) =>
             {
@@ -1587,6 +1585,7 @@ namespace Oxide.Plugins
             containerGUI.display(player);
         }
 
+        //hooks
         public void closeUI(virtualContainer container)
         {
 #if DEBUG
