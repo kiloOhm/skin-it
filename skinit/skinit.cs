@@ -86,6 +86,7 @@ namespace Oxide.Plugins
 
             public void approve(string category = null)
             {
+                if (category == null) category = this.category;
                 PluginInstance.addSkin(skin, category);
                 PluginInstance.saveSkinsData();
             }
@@ -1326,10 +1327,10 @@ namespace Oxide.Plugins
                             Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
                             return;
                         }
-                        else if(isAdmin(player))
-                        {
-                            reviewRequests(player, request);
-                        }
+                        //else if(isAdmin(player))
+                        //{
+                        //    reviewRequests(player, request);
+                        //}
                         else suggestNewStepTwo(player, request);
                     };
                     request.init(callback);
@@ -1383,18 +1384,19 @@ namespace Oxide.Plugins
                 {
                     suggestNewStepTwo(player, request, dropDownActive, activeSelection, error = true);
                     GuiTracker.getGuiTracker(player).destroyGui(this, "dropdown");
-
                 }
-                //else if (activeSelection == "Add a New Category")
-                //{
-
-                //    destroyPopups(player);
-                //    addNewCategoryMiddle(player, request);
-                //} 
                 else {
                     request.category = activeSelection;
-                    PluginInstance.requestData.addRequest(request);
-                    prompt(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
+                    if(isAdmin(player))
+                    {
+                        request.approve();
+                        prompt(player, "Skin has been added!", "SKIN ADDED");
+                    }
+                    else
+                    {
+                        PluginInstance.requestData.addRequest(request);
+                        prompt(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
+                    }
                     Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.updated.prefab", player.transform.position);
                     destroyPopups(player);
                     buttonsLeft(player);
@@ -1755,10 +1757,10 @@ namespace Oxide.Plugins
         {
             if(skin == null)
             {
-                Puts("addSkin: Skin is null!");
                 return;
             }
             skin.category = category ?? config.defaultCatName;
+            category = skin.category;
 
             Skinnable item = skinsData.GetSkinnable(skin.shortname);
             if (item == null)
@@ -2076,7 +2078,7 @@ namespace Oxide.Plugins
                     callback(null);
                     return;
                 }
-                Skin s = new Skin(pf.title, null, shortname, ulong.Parse(pf.publishedfileid), pf.preview_url);
+                Skin s = new Skin(pf.title, config.defaultCatName, shortname, ulong.Parse(pf.publishedfileid), pf.preview_url);
                 callback(s);
             }, this, RequestMethod.POST);
         }
