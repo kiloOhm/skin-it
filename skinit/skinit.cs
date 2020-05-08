@@ -317,8 +317,6 @@ namespace Oxide.Plugins
 
             //commands
             cmd.AddChatCommand(config.command, this, nameof(skinitCommand));
-            cmd.AddChatCommand("test", this, nameof(testCommand));
-            cmd.AddConsoleCommand("skinit.test", this, nameof(testConsoleCommand));
             cmd.AddConsoleCommand("skinit.add", this, nameof(addCommand));
 
             //images
@@ -500,7 +498,6 @@ namespace Oxide.Plugins
                 }
                 if (item.skin == activeSkin.id)
                 {
-                    PrintToChat(item.skin.ToString());
                     skinitButton(container, activeSkin, item, skinit.buttonStates.redundant);
                     return;
                 }
@@ -1685,22 +1682,6 @@ namespace Oxide.Plugins
             }
             addSkins(IDs, (category == null)?config.defaultCatName:args[0]);
              return $"adding {IDs.Count} {((IDs.Count == 1)?"skin":"skins")}";
-        }
-
-        private void testConsoleCommand(ConsoleSystem.Arg arg)
-        {
-            changeSkinCategory(skinsData.GetSkin(ulong.Parse(arg.Args[0])), arg.Args[1]);
-        }
-
-        private void testCommand(BasePlayer player, string command, string[] args)
-        {
-#if DEBUG
-            player.ChatMessage("testing");
-            Puts("testing");
-#endif
-            Action<string> callback = (input) => PrintToChat(input);
-            List<string> options = new List<string> { "1", "2", "3", "4", "5", "6" };
-            dropdown(player, options, new Rectangle(100, 100, 300, 570, 1920, 1080, true), callback);
         }
         #endregion
 
