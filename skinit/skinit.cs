@@ -1064,7 +1064,7 @@ namespace Oxide.Plugins
             int maxItems = 5;
             List<List<string>> ListOfLists = SplitIntoChunks<string>(options, maxItems);
             GuiContainer container = new GuiContainer(this, "dropdown", "background");
-            container.addPlainPanel("dropdown_background", rectangle, GuiContainer.Layer.menu, new GuiColor(0,0,0,0.6f), 0, 0, true);
+            container.addPlainPanel("dropdown_background", rectangle, GuiContainer.Layer.menu, new GuiColor(0,0,0,0.6f), 0, 0, GuiContainer.Blur.medium);
 
             double cfX = rectangle.W / 300;
             double cfY = rectangle.H / 570;
