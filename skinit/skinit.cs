@@ -254,7 +254,20 @@ namespace Oxide.Plugins
 
         void OnServerInitialized()
         {
+            //references
+            guiCreator = (GUICreator)Manager.GetPlugin("GUICreator");
+            if (config.useServerRewards && ServerRewards == null) Puts("ServerRewards not loaded! get it at https://umod.org/plugins/server-rewards");
+            if ((config.useServerRewards || config.useEconomics) && Economics == null) Puts("Economics not loaded! get it at https://umod.org/plugins/economics");
+            if (guiCreator == null)
+            {
+                Puts("GUICreator missing! This shouldn't happen");
+                return;
+            }
+
             #region config processing
+
+            //re-register skin images
+            skinsData.registerImages();
 
             //add new skins
             Dictionary<string, List<ulong>> toBeAdded = new Dictionary<string, List<ulong>>();
@@ -303,17 +316,6 @@ namespace Oxide.Plugins
             saveSkinsData();
 
             #endregion
-
-
-            //references
-            guiCreator = (GUICreator)Manager.GetPlugin("GUICreator");
-            if (config.useServerRewards && ServerRewards == null) Puts("ServerRewards not loaded! get it at https://umod.org/plugins/server-rewards");
-            if ((config.useServerRewards || config.useEconomics) && Economics == null) Puts("Economics not loaded! get it at https://umod.org/plugins/economics");
-            if (guiCreator == null)
-            {
-                Puts("GUICreator missing! This shouldn't happen");
-                return;
-            }
 
             //commands
             cmd.AddChatCommand(config.command, this, nameof(skinitCommand));
@@ -2079,6 +2081,29 @@ namespace Oxide.Plugins
             {
             }
 
+            public void registerImages()
+            {
+                foreach(Skinnable item in items)
+                {
+#if DEBUG2
+                    PluginInstance.Puts($"re-registering categories for {item.shortname}");
+#endif
+                    foreach(Category cat in item.categories)
+                    {
+#if DEBUG2
+                        PluginInstance.Puts($"re-registering skins in {cat.name}");
+#endif
+                        foreach (Skin skin in cat.skins)
+                        {
+#if DEBUG2
+                            PluginInstance.Puts($"re-registering {skin.safename}");
+#endif
+                            PluginInstance.guiCreator.registerImage(PluginInstance, skin.safename, skin.url);
+                        }
+                    }
+                }
+            }
+
             public Skinnable GetSkinnable(string shortname)
             {
                 foreach(Skinnable item in items)
@@ -2150,9 +2175,9 @@ namespace Oxide.Plugins
             }
         }
 
-        #endregion
+#endregion
 
-        #region requestsData
+#region requestsData
         private class RequestData
         {
             public Queue<Request> requests = new Queue<skinit.Request>();
@@ -2237,9 +2262,9 @@ namespace Oxide.Plugins
             }
         }
 
-        #endregion
+#endregion
 
-        #endregion
+#endregion
 
         #region Config
         private static ConfigData config;
@@ -2337,14 +2362,14 @@ namespace Oxide.Plugins
         protected override void SaveConfig() => Config.WriteObject(config);
 
         protected override void LoadDefaultConfig() => config = getDefaultConfig();
-        #endregion
+#endregion
 
         #region Localization
         Dictionary<string, string> messages = new Dictionary<string, string>()
         {
             {"noPermission", "You don't have permission to use this command!"}
         };
-        #endregion
+#endregion
 
         #region shortname LUT
 
@@ -2445,6 +2470,6 @@ namespace Oxide.Plugins
             {"Boots Skin", "shoes.boots" }
         };
 
-        #endregion
+#endregion
     }
 }

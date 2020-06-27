@@ -1,6 +1,5 @@
 ﻿//#define DEBUG
 
-using Facepunch.Extend;
 using Oxide.Core.Plugins;
 using Oxide.Game.Rust.Cui;
 using System;
@@ -85,7 +84,7 @@ namespace Oxide.Plugins
 
         #region classes
 
-        public class Rectangle:CuiRectTransformComponent
+        public class Rectangle : CuiRectTransformComponent
         {
             public double anchorMinX;
             public double anchorMinY;
@@ -121,7 +120,7 @@ namespace Oxide.Plugins
                 anchorMinY = newY / resY;
                 anchorMaxX = (X + W) / resX;
                 anchorMaxY = (newY + H) / resY;
-                
+
                 AnchorMin = $"{anchorMinX} {anchorMinY}";
                 AnchorMax = $"{anchorMaxX} {anchorMaxY}";
             }
@@ -166,7 +165,7 @@ namespace Oxide.Plugins
             }
         }
 
-        public class GuiText:CuiTextComponent
+        public class GuiText : CuiTextComponent
         {
             public GuiText()
             {
@@ -204,8 +203,8 @@ namespace Oxide.Plugins
             public GuiContainer(Plugin plugin, string name, string parent = null, Action<BasePlayer> closeCallback = null)
             {
                 this.plugin = plugin;
-                this.name = safeName(name);
-                this.parent = safeName(parent);
+                this.name = removeWhiteSpaces(name);
+                this.parent = removeWhiteSpaces(parent);
                 this.closeCallback = closeCallback;
             }
 
@@ -217,6 +216,13 @@ namespace Oxide.Plugins
             public void display(BasePlayer player)
             {
                 if (this.Count == 0) return;
+
+                foreach(CuiElement element in this)
+                {
+                    if(!string.IsNullOrEmpty(element.Name)) element.Name = PluginInstance.prependContainerName(this, element.Name);
+                    if(!string.IsNullOrEmpty(element.Parent) && !layers.Contains(element.Parent)) element.Parent = PluginInstance.prependContainerName(this, element.Parent);
+                }
+
                 GuiTracker.getGuiTracker(player).addGuiToTracker(plugin, this);
                 CuiHelper.AddUi(player, this);
             }
@@ -228,12 +234,14 @@ namespace Oxide.Plugins
 
             public void registerCallback(string name, Action<BasePlayer, string[]> callback)
             {
+                name = removeWhiteSpaces(name);
                 if (callbacks.ContainsKey(name)) callbacks.Remove(name);
                 callbacks.Add(name, callback);
             }
 
             public bool runCallback(string name, BasePlayer player, string[] input)
             {
+                name = removeWhiteSpaces(name);
                 if (!callbacks.ContainsKey(name)) return false;
                 try
                 {
@@ -249,10 +257,11 @@ namespace Oxide.Plugins
 
             private void purgeDuplicates(string name)
             {
-                foreach(CuiElement element in this)
+                foreach (CuiElement element in this)
                 {
                     if (element.Name == name)
                     {
+                        PluginInstance.Puts($"Duplicate element: {element.Name} in container: {this.name}");
                         this.Remove(element);
                         return;
                     }
@@ -288,18 +297,17 @@ namespace Oxide.Plugins
             public void addPanel(string name, CuiRectTransformComponent rectangle, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, GuiText text = null, string imgName = null, bool blur = false)
             {
                 if (string.IsNullOrEmpty(name)) name = "panel";
-                else name = PluginInstance.encodeName(this, name);
                 purgeDuplicates(name);
 
                 if (string.IsNullOrEmpty(imgName))
                 {
-                    addPlainPanel(PluginInstance.decodeName(this, name), rectangle, parent, panelColor, FadeIn, FadeOut, blur);
+                    addPlainPanel(name, rectangle, parent, panelColor, FadeIn, FadeOut, blur);
                 }
                 else
                 {
-                    this.addImage(PluginInstance.decodeName(this, name), rectangle, imgName, parent, panelColor, FadeIn, FadeOut);
+                    this.addImage(name, rectangle, imgName, parent, panelColor, FadeIn, FadeOut);
                 }
-                if (text != null) this.addText(PluginInstance.decodeName(this, name) + "_txt", new Rectangle(), text, FadeIn, FadeOut, PluginInstance.decodeName(this, name));
+                if (text != null) this.addText(name + "_txt", new Rectangle(), text, FadeIn, FadeOut, name);
             }
 
             public void addPlainPanel(string name, CuiRectTransformComponent rectangle, Layer layer, GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, bool blur = false)
@@ -310,12 +318,12 @@ namespace Oxide.Plugins
             public void addPlainPanel(string name, CuiRectTransformComponent rectangle, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, bool blur = false)
             {
                 if (string.IsNullOrEmpty(name)) name = "plainPanel";
-                else name = PluginInstance.encodeName(this, name);
+                
                 purgeDuplicates(name);
 
                 this.Add(new CuiElement
                 {
-                    Parent = PluginInstance.encodeName(this, parent),
+                    Parent = parent,
                     Name = name,
                     Components =
                 {
@@ -334,12 +342,12 @@ namespace Oxide.Plugins
             public void addImage(string name, CuiRectTransformComponent rectangle, string imgName, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0)
             {
                 if (string.IsNullOrEmpty(name)) name = "image";
-                else name = PluginInstance.encodeName(this, name); ;
+                 ;
                 purgeDuplicates(name);
 
                 this.Add(new CuiElement
                 {
-                    Parent = PluginInstance.encodeName(this, parent),
+                    Parent = parent,
                     Name = name,
                     Components =
                 {
@@ -358,12 +366,12 @@ namespace Oxide.Plugins
             public void addRawImage(string name, CuiRectTransformComponent rectangle, string imgData, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0)
             {
                 if (string.IsNullOrEmpty(name)) name = "image";
-                else name = PluginInstance.encodeName(this, name);
+                
                 purgeDuplicates(name);
 
                 this.Add(new CuiElement
                 {
-                    Parent = PluginInstance.encodeName(this, parent),
+                    Parent = parent,
                     Name = name,
                     Components =
                 {
@@ -382,14 +390,14 @@ namespace Oxide.Plugins
             public void addText(string name, CuiRectTransformComponent rectangle, GuiText text = null, float FadeIn = 0, float FadeOut = 0, string parent = "Hud")
             {
                 if (string.IsNullOrEmpty(name)) name = "text";
-                else name = PluginInstance.encodeName(this, name);
-                purgeDuplicates(name);
                 
+                purgeDuplicates(name);
+
                 text.FadeIn = FadeIn;
 
                 this.Add(new CuiElement
                 {
-                    Parent = PluginInstance.encodeName(this, parent),
+                    Parent = parent,
                     Name = name,
                     Components =
                 {
@@ -408,17 +416,17 @@ namespace Oxide.Plugins
             public void addButton(string name, CuiRectTransformComponent rectangle, GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, GuiText text = null, Action<BasePlayer, string[]> callback = null, string close = null, bool CursorEnabled = true, string imgName = null, string parent = "Hud", bool blur = false)
             {
                 if (string.IsNullOrEmpty(name)) name = "button";
-                else name = PluginInstance.encodeName(this, name);
+                
                 purgeDuplicates(name);
 
                 if (imgName != null)
                 {
-                    this.addImage(PluginInstance.decodeName(this, name), rectangle, imgName, parent, null, FadeIn, FadeOut);
-                    this.addPlainButton(PluginInstance.decodeName(this, name) + "_btn", new Rectangle(), panelColor, FadeIn, FadeOut, text, callback, close, CursorEnabled, PluginInstance.decodeName(this, name));
+                    this.addImage(name, rectangle, imgName, parent, null, FadeIn, FadeOut);
+                    this.addPlainButton(name + "_btn", new Rectangle(), panelColor, FadeIn, FadeOut, text, callback, close, CursorEnabled, name);
                 }
                 else
                 {
-                    this.addPlainButton(PluginInstance.decodeName(this, name), rectangle, panelColor, FadeIn, FadeOut, text, callback, close, CursorEnabled, parent, blur);
+                    this.addPlainButton(name, rectangle, panelColor, FadeIn, FadeOut, text, callback, close, CursorEnabled, parent, blur);
                 }
             }
 
@@ -430,7 +438,7 @@ namespace Oxide.Plugins
             public void addPlainButton(string name, CuiRectTransformComponent rectangle, GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, GuiText text = null, Action<BasePlayer, string[]> callback = null, string close = null, bool CursorEnabled = true, string parent = "Hud", bool blur = false)
             {
                 if (string.IsNullOrEmpty(name)) name = "plainButton";
-                else name = PluginInstance.encodeName(this, name);
+                
                 purgeDuplicates(name);
 
                 StringBuilder closeString = new StringBuilder("");
@@ -443,22 +451,22 @@ namespace Oxide.Plugins
                 this.Add(new CuiElement
                 {
                     Name = name,
-                    Parent = PluginInstance.encodeName(this, parent),
+                    Parent = parent,
                     Components =
                     {
-                        new CuiButtonComponent {Command = $"gui.input {plugin.Name} {this.name} {name}{closeString.ToString()}", FadeIn = FadeIn, Color = (panelColor != null) ? panelColor.getColorString() : "0 0 0 0", Material = blur?"assets/content/ui/uibackgroundblur-ingamemenu.mat":"Assets/Icons/IconMaterial.mat"},
+                        new CuiButtonComponent {Command = $"gui.input {plugin.Name} {this.name} {removeWhiteSpaces(name)}{closeString.ToString()}", FadeIn = FadeIn, Color = (panelColor != null) ? panelColor.getColorString() : "0 0 0 0", Material = blur?"assets/content/ui/uibackgroundblur-ingamemenu.mat":"Assets/Icons/IconMaterial.mat"},
                         rectangle
                     },
                     FadeOut = FadeOut
                 });
 
-                if(text != null) this.addText(PluginInstance.decodeName(this, name) + "_txt", new CuiRectTransformComponent(), text, FadeIn, FadeOut, PluginInstance.decodeName(this, name));
+                if (text != null) this.addText(name + "_txt", new CuiRectTransformComponent(), text, FadeIn, FadeOut, name);
 
                 if (CursorEnabled)
                 {
                     this.Add(new CuiElement()
                     {
-                        Name = PluginInstance.decodeName(this, name) + "_cursor",
+                        Name = name + "_cursor",
                         Parent = name,
                         Components =
                     {
@@ -478,7 +486,7 @@ namespace Oxide.Plugins
             public void addInput(string name, CuiRectTransformComponent rectangle, Action<BasePlayer, string[]> callback, string parent = "Hud", string close = null, GuiColor panelColor = null, int charLimit = 100, GuiText text = null, float FadeIn = 0, float FadeOut = 0, bool isPassword = false, bool CursorEnabled = true, string imgName = null)
             {
                 if (string.IsNullOrEmpty(name)) name = "input";
-                else name = PluginInstance.encodeName(this, name);
+                
                 purgeDuplicates(name);
 
                 StringBuilder closeString = new StringBuilder("");
@@ -490,11 +498,11 @@ namespace Oxide.Plugins
 
                 if (imgName != null || panelColor != null)
                 {
-                    this.addPanel(PluginInstance.decodeName(this, name), rectangle, parent, panelColor, FadeIn, FadeOut, null, imgName);
+                    this.addPanel(name, rectangle, parent, panelColor, FadeIn, FadeOut, null, imgName);
 
                     this.Add(new CuiInputField()
                     {
-                        InputField = { Align = text.Align, FontSize = text.FontSize, Color = text.Color, Command = $"gui.input {plugin.Name} {this.name} {name}{closeString.ToString()} --input", CharsLimit = charLimit, IsPassword = isPassword },
+                        InputField = { Align = text.Align, FontSize = text.FontSize, Color = text.Color, Command = $"gui.input {plugin.Name} {this.name} {removeWhiteSpaces(name)}{closeString.ToString()} --input", CharsLimit = charLimit, IsPassword = isPassword },
                         RectTransform = new Rectangle(),
                         CursorEnabled = CursorEnabled,
                         FadeOut = FadeOut
@@ -504,11 +512,11 @@ namespace Oxide.Plugins
                 {
                     this.Add(new CuiInputField()
                     {
-                        InputField = { Align = text.Align, FontSize = text.FontSize, Color = text.Color, Command = $"gui.input text {plugin.Name} {this.name} {name}{closeString.ToString()} --input", CharsLimit = charLimit, IsPassword = isPassword },
+                        InputField = { Align = text.Align, FontSize = text.FontSize, Color = text.Color, Command = $"gui.input text {plugin.Name} {this.name} {removeWhiteSpaces(name)}{closeString.ToString()} --input", CharsLimit = charLimit, IsPassword = isPassword },
                         RectTransform = rectangle,
                         CursorEnabled = CursorEnabled,
                         FadeOut = FadeOut
-                    }, PluginInstance.encodeName(this, parent), name);
+                    }, parent, name);
                 }
 
                 if (callback != null) this.registerCallback(name, callback);
@@ -537,7 +545,7 @@ namespace Oxide.Plugins
 
             public GuiContainer getContainer(Plugin plugin, string name)
             {
-                name = safeName(name);
+                name = removeWhiteSpaces(name);
                 foreach (GuiContainer container in activeGuiContainers)
                 {
                     if (container.plugin != plugin) continue;
@@ -557,14 +565,14 @@ namespace Oxide.Plugins
 
             public void destroyGui(Plugin plugin, string containerName, string name = null)
             {
-                if (name != null) name = safeName(name);
-                destroyGui(plugin, getContainer(plugin, safeName(containerName)), name);
+                if (name != null) name = removeWhiteSpaces(name);
+                destroyGui(plugin, getContainer(plugin, removeWhiteSpaces(containerName)), name);
             }
 
             public void destroyGui(Plugin plugin, GuiContainer container, string name = null)
             {
                 if (container == null) return;
-                if(name == null)
+                if (name == null)
                 {
                     List<GuiContainer> garbage = new List<GuiContainer>();
                     destroyGuiContainer(plugin, container, garbage);
@@ -575,7 +583,8 @@ namespace Oxide.Plugins
                 }
                 else
                 {
-                    name = safeName(name);
+                    name = removeWhiteSpaces(name);
+                    name = PluginInstance.prependContainerName(container, name);
                     List<CuiElement> eGarbage = new List<CuiElement>();
                     destroyGuiElement(plugin, container, name, eGarbage);
                     foreach (CuiElement element in eGarbage)
@@ -603,7 +612,7 @@ namespace Oxide.Plugins
                     {
                         destroyGuiElement(plugin, container, element.Name, eGarbage);
                     }
-                    foreach(CuiElement element in eGarbage)
+                    foreach (CuiElement element in eGarbage)
                     {
                         container.Remove(element);
                     }
@@ -618,7 +627,7 @@ namespace Oxide.Plugins
 
             private void destroyGuiElement(Plugin plugin, GuiContainer container, string name, List<CuiElement> garbage)
             {
-                name = safeName(name);
+                name = removeWhiteSpaces(name);
 #if DEBUG
                 player.ChatMessage($"destroyGui: {plugin.Name} {name}");
 #endif
@@ -639,7 +648,7 @@ namespace Oxide.Plugins
                 CuiHelper.DestroyUi(player, target.Name);
                 garbage.Add(target);
 
-                
+
             }
 
             public void destroyAllGui(Plugin plugin)
@@ -689,21 +698,21 @@ namespace Oxide.Plugins
             switch (type)
             {
                 case gametipType.gametip:
-                    container.addImage("gametip", new Rectangle(375, 844, 1170, 58, 1920, 1080, true), "bgTex", GuiContainer.Layer.menu, new GuiColor("#25639BF0"), 0.5f, 1);
-                    container.addText("gametip_txt", new Rectangle(433, 844, 1112, 58, 1920, 1080, true), GuiContainer.Layer.menu, new GuiText(text, 20, new GuiColor("#FFFFFFD9")), 0.5f, 1);
-                    container.addImage("gametip_icon", new Rectangle(375, 844, 58, 58, 1920, 1080, true), "gameTipIcon", GuiContainer.Layer.menu, new GuiColor("#FFFFFFD9"), 0.5f, 1);
+                    container.addImage("gametip", new Rectangle(375, 844, 1170, 58, 1920, 1080, true), "bgTex", GuiContainer.Layer.overall, new GuiColor("#25639BF0"), 0.5f, 1);
+                    container.addText("gametip_txt", new Rectangle(433, 844, 1112, 58, 1920, 1080, true), GuiContainer.Layer.overall, new GuiText(text, 20, new GuiColor("#FFFFFFD9")), 0.5f, 1);
+                    container.addImage("gametip_icon", new Rectangle(375, 844, 58, 58, 1920, 1080, true), "gameTipIcon", GuiContainer.Layer.overall, new GuiColor("#FFFFFFD9"), 0.5f, 1);
                     break;
 
                 case gametipType.warning:
-                    container.addPlainPanel("gametip", new Rectangle(375, 844, 1170, 58, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor("#DED502F0"), 0.5f, 1);
-                    container.addText("gametip_txt", new Rectangle(433, 844, 1112, 58, 1920, 1080, true), GuiContainer.Layer.menu, new GuiText(text, 20, new GuiColor("#000000D9")), 0.5f, 1);
-                    container.addImage("gametip_icon", new Rectangle(375, 844, 58, 58, 1920, 1080, true), "warning_alpha", GuiContainer.Layer.menu, new GuiColor("#FFFFFFD9"), 0.5f, 1);
+                    container.addPlainPanel("gametip", new Rectangle(375, 844, 1170, 58, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor("#DED502F0"), 0.5f, 1);
+                    container.addText("gametip_txt", new Rectangle(433, 844, 1112, 58, 1920, 1080, true), GuiContainer.Layer.overall, new GuiText(text, 20, new GuiColor("#000000D9")), 0.5f, 1);
+                    container.addImage("gametip_icon", new Rectangle(375, 844, 58, 58, 1920, 1080, true), "warning_alpha", GuiContainer.Layer.overall, new GuiColor("#FFFFFFD9"), 0.5f, 1);
                     break;
 
                 case gametipType.error:
-                    container.addImage("gametip", new Rectangle(375, 844, 1170, 58, 1920, 1080, true), "bgTex", GuiContainer.Layer.menu, new GuiColor("#BB0000F0"), 0.5f, 1);
-                    container.addText("gametip_txt", new Rectangle(433, 844, 1112, 58, 1920, 1080, true), GuiContainer.Layer.menu, new GuiText(text, 20, new GuiColor("#FFFFFFD9")), 0.5f, 1);
-                    container.addImage("gametip_icon", new Rectangle(375, 844, 58, 58, 1920, 1080, true), "white_cross", GuiContainer.Layer.menu, new GuiColor("#FFFFFFD9"), 0.5f, 1);
+                    container.addImage("gametip", new Rectangle(375, 844, 1170, 58, 1920, 1080, true), "bgTex", GuiContainer.Layer.overall, new GuiColor("#BB0000F0"), 0.5f, 1);
+                    container.addText("gametip_txt", new Rectangle(433, 844, 1112, 58, 1920, 1080, true), GuiContainer.Layer.overall, new GuiText(text, 20, new GuiColor("#FFFFFFD9")), 0.5f, 1);
+                    container.addImage("gametip_icon", new Rectangle(375, 844, 58, 58, 1920, 1080, true), "white_cross", GuiContainer.Layer.overall, new GuiColor("#FFFFFFD9"), 0.5f, 1);
                     break;
             }
 
@@ -718,9 +727,106 @@ namespace Oxide.Plugins
             container.display(player);
         }
 
+        public void prompt(BasePlayer player, string message, string header)
+        {
+            Action<BasePlayer, string[]> closeCallback = (bPlayer, input) =>
+            {
+                GuiTracker.getGuiTracker(player).destroyGui(PluginInstance, "gametip");
+            };
+            GuiContainer containerGUI = new GuiContainer(this, "prompt");
+            containerGUI.addPlainPanel("background", new Rectangle(700, 377, 520, 243, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0,0,0,0.6f), 0.1f, 0.1f, true);
+            containerGUI.addPanel("msg", new Rectangle(755, 469, 394, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0.1f, 0.1f, new GuiText(message, 10, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPanel("header", new Rectangle(800, 404, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0.1f, 0.1f, new GuiText(header, 25, new GuiColor(255, 255, 255, 0.8f)));
+            containerGUI.addPlainButton("close", new Rectangle(802, 536, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), 0.1f, 0.1f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), closeCallback);
+            containerGUI.display(player);
+        }
+
+        public void dropdown(BasePlayer player, List<string> options, Rectangle rectangle, string parent, Action<string> callback, bool allowNew = false, int page = 0, Predicate<string> predicate = null)
+        {
+            if (allowNew) options.Add("(add new)");
+            int maxItems = 5;
+            List<List<string>> ListOfLists = SplitIntoChunks<string>(options, maxItems);
+            GuiContainer container = new GuiContainer(this, "dropdown", parent);
+            container.addPlainPanel("dropdown_background", rectangle, GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0.6f), 0, 0, true);
+
+            double cfX = rectangle.W / 300;
+            double cfY = rectangle.H / 570;
+
+            Action<BasePlayer, string[]> up = (bPlayer, input) =>
+            {
+                dropdown(player, options, rectangle, parent, callback, allowNew, page - 1, predicate);
+            };
+            Action<BasePlayer, string[]> down = (bPlayer, input) =>
+            {
+                dropdown(player, options, rectangle, parent, callback, allowNew, page + 1, predicate);
+            };
+            if (page > 0) container.addPlainButton("dropdown_up", new Rectangle(0, 1, 298, 36, 300, 570, true), new GuiColor(1, 1, 1, 0.4f), 0, 0, new GuiText("<b>∧</b>", (int)Math.Floor(22 * cfY), new GuiColor("black")), up, parent: "dropdown_background");
+            if (page < ListOfLists.Count - 1) container.addPlainButton("dropdown_up", new Rectangle(0, 533, 298, 37, 300, 570, true), new GuiColor(1, 1, 1, 0.4f), 0, 0, new GuiText("<b>∨</b>", (int)Math.Floor(22 * cfY), new GuiColor("black")), down, parent: "dropdown_background");
+
+            int count = 0;
+            foreach (string option in ListOfLists[page])
+            {
+                Rectangle pos = new Rectangle(10, 40 + count * 100, 280, 90, 300, 570, true); ;
+                Rectangle absPos = new Rectangle(rectangle.X + (pos.X * cfX), rectangle.Y + (pos.Y * cfY), pos.W * cfX, pos.H * cfY, 1920, 1080, true);
+
+                Action<BasePlayer, string[]> btnCallback = null;
+                if (option == "(add new)")
+                {
+                    btnCallback = (bPlayer, input) => dropdownAddNew(player, absPos, callback, predicate);
+                }
+                else
+                {
+                    string selected = option;
+                    btnCallback = (bPlayer, input) =>
+                    {
+                        callback(selected);
+                    };
+                }
+                container.addPlainButton($"dropdown_option_{option}", pos, new GuiColor(0, 0, 0, 0.7f), 0, 0, new GuiText(option, color: new GuiColor(1, 1, 1, 0.5f)), btnCallback, parent: "dropdown_background");
+                count++;
+            }
+
+            container.display(player);
+        }
+
+        public void dropdownAddNew(BasePlayer player, Rectangle rectangle, Action<string> callback, Predicate<string> predicate)
+        {
+            GuiContainer container = new GuiContainer(this, "dropdown_addNew", "dropdown");
+            Action<BasePlayer, string[]> inputCallback = (bPlayer, input) =>
+            {
+                if (input.Length == 0) return;
+                GuiTracker.getGuiTracker(player).destroyGui(PluginInstance, "dropdown_addNew");
+                StringBuilder newName = new StringBuilder();
+                int i = 1;
+                foreach (string s in input)
+                {
+                    newName.Append(s);
+                    if (i != input.Length) newName.Append(" ");
+                    i++;
+                }
+
+                if (predicate != null)
+                {
+                    if (!predicate(newName.ToString()))
+                    {
+                        prompt(player, "Your input is invalid!", "INVALID INPUT");
+                        dropdownAddNew(player, rectangle, callback, predicate);
+                        return;
+                    }
+                }
+                callback(newName.ToString());
+                GuiTracker.getGuiTracker(player).destroyGui(PluginInstance, container);
+            };
+
+            container.addInput("dropdown_addNew_input", rectangle, inputCallback, GuiContainer.Layer.menu, null, new GuiColor("white"), 15, new GuiText("", color: new GuiColor("black")), 0, 0);
+            container.display(player);
+        }
+
         public void registerImage(Plugin plugin, string name, string url, Action callback = null)
         {
-            ImageLibrary.Call("AddImage", url, $"{plugin.Name}_{name}", (ulong)0, callback);
+            string safeName = $"{plugin.Name}_{name}";
+
+            if(!ImageLibrary.Call<bool>("HasImage", safeName)) ImageLibrary.Call("AddImage", url, safeName, (ulong)0, callback);
 #if DEBUG
             PrintToChat($"{plugin.Name} registered {name} image");
 #endif
@@ -730,16 +836,30 @@ namespace Oxide.Plugins
 
         #region helpers
 
-        private string encodeName(GuiContainer container, string name)
+        public List<List<T>> SplitIntoChunks<T>(List<T> list, int chunkSize = 30)
         {
-            if (GuiContainer.layers.Contains(name)) return name;
-            return $"{container.name}_{safeName(name)}";
+            if (chunkSize <= 0)
+            {
+                return null;
+            }
+
+            List<List<T>> retVal = new List<List<T>>();
+            int index = 0;
+            while (index < list.Count)
+            {
+                int count = list.Count - index > chunkSize ? chunkSize : list.Count - index;
+                retVal.Add(list.GetRange(index, count));
+
+                index += chunkSize;
+            }
+
+            return retVal;
         }
 
-        private string decodeName(GuiContainer container, string name)
+        private string prependContainerName(GuiContainer container, string name)
         {
             if (GuiContainer.layers.Contains(name)) return name;
-            return name.Substring(container.name.Length+1);
+            return $"{container.name}_{removeWhiteSpaces(name)}";
         }
 
         public string getItemIcon(string shortname)
@@ -754,7 +874,7 @@ namespace Oxide.Plugins
             return (string)PluginInstance.ImageLibrary.Call("GetImage", $"{plugin.Name}_{name}");
         }
 
-        private static string safeName(string name)
+        private static string removeWhiteSpaces(string name)
         {
             if (string.IsNullOrEmpty(name)) return null;
             return Regex.Replace(name, " ", "_");
@@ -774,15 +894,15 @@ namespace Oxide.Plugins
             if (arg.Args != null) player = BasePlayer.FindByID(ulong.Parse(arg.Args[0]));
             if (player == null) return;
             GuiTracker tracker = GuiTracker.getGuiTracker(player);
-            if(tracker.activeGuiContainers.Count == 0)
+            if (tracker.activeGuiContainers.Count == 0)
             {
                 SendReply(arg, "you don't have any active guiContainers!");
                 return;
             }
-            foreach(GuiContainer container in tracker.activeGuiContainers)
+            foreach (GuiContainer container in tracker.activeGuiContainers)
             {
                 SendReply(arg, $"Plugin: {container.plugin.Name}, Container: {container.name}, Parent: {container.parent}:");
-                foreach(CuiElement element in container)
+                foreach (CuiElement element in container)
                 {
                     SendReply(arg, $"- Element: {element.Name}, Parent: {element.Parent}");
                 }
@@ -792,7 +912,7 @@ namespace Oxide.Plugins
         private void OnGuiInput(ConsoleSystem.Arg arg)
         {
             //gui.input pluginName containerName inputName --close elementNames... --input text...
-            if(arg.Args.Length < 3)
+            if (arg.Args.Length < 3)
             {
                 SendReply(arg, "OnGuiInput: not enough arguments given!");
                 return;
@@ -802,6 +922,7 @@ namespace Oxide.Plugins
             if (player == null) return;
 
 #if DEBUG
+            SendReply(arg, $"OnGuiInput: gui.input {arg.FullString}");
             player.ChatMessage($"OnGuiInput: gui.input {arg.FullString}");
 #endif
 
@@ -811,14 +932,14 @@ namespace Oxide.Plugins
             Stack<string> args = new Stack<string>(arg.Args.Reverse<string>());
 
             Plugin plugin = Manager.GetPlugin(args.Pop());
-            if(plugin == null)
+            if (plugin == null)
             {
                 SendReply(arg, "OnGuiInput: Plugin not found!");
                 return;
             }
 
             GuiContainer container = tracker.getContainer(plugin, args.Pop());
-            if( container == null)
+            if (container == null)
             {
                 SendReply(arg, "OnGuiInput: Container not found!");
                 return;
@@ -827,16 +948,16 @@ namespace Oxide.Plugins
             string inputName = args.Pop();
 
             bool closeContainer = false;
-            if (inputName == encodeName(container, "close") || inputName == encodeName(container, "close_btn")) closeContainer = true;
+            if (inputName == "close" || inputName == "close_btn") closeContainer = true;
 
             List<string> close = new List<string>();
             List<string> input = new List<string>();
             List<string> select = null;
             string next;
 
-            while(args.TryPop(out next))
+            while (args.TryPop(out next))
             {
-                if (next == "--close")select = close;
+                if (next == "--close") select = close;
                 else if (next == "--input") select = input;
                 else
                 {
@@ -852,16 +973,16 @@ namespace Oxide.Plugins
 
             #region execution
 
-            if(!container.runCallback(inputName, player, input.ToArray())) 
+            if (!container.runCallback(inputName, player, input.ToArray()))
             {
 #if DEBUG
                 SendReply(arg, $"OnGuiInput: Callback for {plugin.Name} {container.name} {inputName} wasn't found");
 #endif
             }
 
-            if(close.Count != 0)
+            if (close.Count != 0)
             {
-                foreach( string name in close)
+                foreach (string name in close)
                 {
                     tracker.destroyGui(plugin, container, name);
                 }
@@ -873,6 +994,11 @@ namespace Oxide.Plugins
 
         }
 
+        [ChatCommand("test")]
+        private void testCommand(BasePlayer player, string command, string[] args)
+        {
+            prompt(player, "test", "test");
+        }
 
         [ChatCommand("guidemo")]
         private void demoCommand(BasePlayer player, string command, string[] args)
@@ -1011,9 +1137,9 @@ namespace Oxide.Plugins
         #region Localization
 
         private Dictionary<string, string> messages = new Dictionary<string, string>()
-    {
-        {"noPermission", "You don't have permission to use this command!"}
-    };
+        {
+            {"noPermission", "You don't have permission to use this command!"}
+        };
 
         #endregion Localization
     }
