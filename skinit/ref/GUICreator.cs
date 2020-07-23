@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("GUICreator", "OHM", "1.2.6")]
+    [Info("GUICreator", "OHM", "1.2.7")]
     [Description("API Plugin for centralized GUI creation and management")]
     internal class GUICreator : RustPlugin
     {
@@ -26,6 +26,9 @@ namespace Oxide.Plugins
         {
             PluginInstance = this;
         }
+
+        public const int offsetResX = 1280;
+        public const int offsetResY = 720;
 
         #endregion global
 
@@ -72,7 +75,7 @@ namespace Oxide.Plugins
 
         #region classes
 
-        public class Rectangle : CuiRectTransformComponent
+        public class OldRectangle : CuiRectTransformComponent
         {
             public double anchorMinX;
             public double anchorMinY;
@@ -88,16 +91,14 @@ namespace Oxide.Plugins
             public double resY;
 
             bool topLeftOrigin;
-            //public string anchorMin => $"{anchorMinX} {anchorMinY}";
-            //public string anchorMax => $"{anchorMaxX} {anchorMaxY}";
 
-            public Rectangle()
+            public OldRectangle()
             {
                 AnchorMin = "0 0";
                 AnchorMax = "1 1";
             }
 
-            public Rectangle(double X, double Y, double W, double H, double resX = 1, double resY = 1, bool topLeftOrigin = false)
+            public OldRectangle(double X, double Y, double W, double H, double resX = 1, double resY = 1, bool topLeftOrigin = false)
             {
                 this.X = X;
                 this.Y = Y;
@@ -118,6 +119,95 @@ namespace Oxide.Plugins
 
                 AnchorMin = $"{anchorMinX} {anchorMinY}";
                 AnchorMax = $"{anchorMaxX} {anchorMaxY}";
+            }
+        }
+
+        public class Rectangle : CuiRectTransformComponent
+        {
+            public enum Anchors { BottomLeft = 0, BottomCenter, BottomRight, CenterLeft, Center, CenterRight, UpperLeft, UpperCenter, UpperRight }
+
+            double[,] AnchorData = new double[9, 4]
+            {
+                {0, 0, 0, 0 },
+                {0.5d, 0, 0.5d, 0 },
+                {1, 0, 1, 0 },
+                {0, 0.5d, 0, 0.5d },
+                {0.5d, 0.5d, 0.5d, 0.5d },
+                {1, 0.5d, 1, 0.5d },
+                {0, 1, 0, 1 },
+                {0.5d, 1, 0.5d, 1 },
+                {1, 1, 1, 1 }
+            };
+
+            string format = "0.##########";
+
+            public double anchorMinX;
+            public double anchorMinY;
+            public double anchorMaxX;
+            public double anchorMaxY;
+
+            public double fractionalMinX;
+            public double fractionalMinY;
+            public double fractionalMaxX;
+            public double fractionalMaxY;
+
+            public double offsetMinX;
+            public double offsetMinY;
+            public double offsetMaxX;
+            public double offsetMaxY;
+
+            public double X;
+            public double Y;
+            public double W;
+            public double H;
+
+            public double resX;
+            public double resY;
+
+            bool topLeftOrigin;
+
+            public Rectangle()
+            {
+                AnchorMin = "0, 0";
+                AnchorMax = "1, 1";
+            }
+
+            public Rectangle(double X, double Y, double W, double H, double resX = 1, double resY = 1, bool topLeftOrigin = false, Anchors anchor = Anchors.Center)
+            {
+                anchorMinX = AnchorData[(int)anchor, 0];
+                anchorMinY = AnchorData[(int)anchor, 1];
+                anchorMaxX = AnchorData[(int)anchor, 2];
+                anchorMaxY = AnchorData[(int)anchor, 3];
+
+                AnchorMin = $"{anchorMinX.ToString(format)} {anchorMinY.ToString(format)}";
+                AnchorMax = $"{anchorMaxX.ToString(format)} {anchorMaxY.ToString(format)}";
+
+                this.X = X;
+                this.Y = Y;
+                this.W = W;
+                this.H = H;
+
+                this.resX = resX;
+                this.resY = resY;
+
+                this.topLeftOrigin = topLeftOrigin;
+
+                double newY = topLeftOrigin ? resY - Y - H : Y;
+
+                fractionalMinX = X / resX;
+                fractionalMinY = newY / resY;
+                fractionalMaxX = (X + W) / resX;
+                fractionalMaxY = (newY + H) / resY;
+                //PluginInstance.PrintToChat($"{newY} + {H} / {resY} = {fractionalMaxY}");
+                //PluginInstance.PrintToChat($"{fractionalMinX} {fractionalMinY} : {fractionalMaxX} {fractionalMaxY}");
+                offsetMinX = -(anchorMinX - fractionalMinX) * offsetResX;
+                offsetMinY = -(anchorMinY - fractionalMinY) * offsetResY;
+                offsetMaxX = -(anchorMaxX - fractionalMaxX) * offsetResX;
+                offsetMaxY = -(anchorMaxY - fractionalMaxY) * offsetResY;
+                //PluginInstance.PrintToChat($"-({0.5d} - {fractionalMaxY} * {offsetResY} = {offsetMaxY}");
+
+                OffsetMin = $"{offsetMinX.ToString(format)} {offsetMinY.ToString(format)}";
+                OffsetMax = $"{offsetMaxX.ToString(format)} {offsetMaxY.ToString(format)}";
             }
         }
 
@@ -208,7 +298,7 @@ namespace Oxide.Plugins
             //Rust UI elements (inventory, Health, etc.) are between the hud and the menu layer
             public static List<string> layers = new List<string> { "Overall", "Overlay", "Hud.Menu", "Hud", "Under" };
 
-            public enum Blur {slight, medium, strong, none};
+            public enum Blur { slight, medium, strong, none };
             public static List<string> blurs = new List<string>
             {
                 "assets/content/ui/uibackgroundblur-notice.mat",
@@ -220,10 +310,10 @@ namespace Oxide.Plugins
             {
                 if (this.Count == 0) return;
 
-                foreach(CuiElement element in this)
+                foreach (CuiElement element in this)
                 {
-                    if(!string.IsNullOrEmpty(element.Name)) element.Name = PluginInstance.prependContainerName(this, element.Name);
-                    if(!string.IsNullOrEmpty(element.Parent) && !layers.Contains(element.Parent)) element.Parent = PluginInstance.prependContainerName(this, element.Parent);
+                    if (!string.IsNullOrEmpty(element.Name)) element.Name = PluginInstance.prependContainerName(this, element.Name);
+                    if (!string.IsNullOrEmpty(element.Parent) && !layers.Contains(element.Parent)) element.Parent = PluginInstance.prependContainerName(this, element.Parent);
                 }
 
                 GuiTracker.getGuiTracker(player).addGuiToTracker(plugin, this);
@@ -321,7 +411,7 @@ namespace Oxide.Plugins
             public void addPlainPanel(string name, CuiRectTransformComponent rectangle, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, Blur blur = Blur.none)
             {
                 if (string.IsNullOrEmpty(name)) name = "plainPanel";
-                
+
                 purgeDuplicates(name);
 
                 string materialString = "Assets/Icons/IconMaterial.mat";
@@ -348,7 +438,7 @@ namespace Oxide.Plugins
             public void addImage(string name, CuiRectTransformComponent rectangle, string imgName, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0)
             {
                 if (string.IsNullOrEmpty(name)) name = "image";
-                 ;
+                ;
                 purgeDuplicates(name);
 
                 this.Add(new CuiElement
@@ -372,7 +462,7 @@ namespace Oxide.Plugins
             public void addRawImage(string name, CuiRectTransformComponent rectangle, string imgData, string parent = "Hud", GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0)
             {
                 if (string.IsNullOrEmpty(name)) name = "image";
-                
+
                 purgeDuplicates(name);
 
                 this.Add(new CuiElement
@@ -396,7 +486,7 @@ namespace Oxide.Plugins
             public void addText(string name, CuiRectTransformComponent rectangle, GuiText text = null, float FadeIn = 0, float FadeOut = 0, string parent = "Hud")
             {
                 if (string.IsNullOrEmpty(name)) name = "text";
-                
+
                 purgeDuplicates(name);
 
                 text.FadeIn = FadeIn;
@@ -422,7 +512,7 @@ namespace Oxide.Plugins
             public void addButton(string name, CuiRectTransformComponent rectangle, GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, GuiText text = null, Action<BasePlayer, string[]> callback = null, string close = null, bool CursorEnabled = true, string imgName = null, string parent = "Hud", Blur blur = Blur.none)
             {
                 if (string.IsNullOrEmpty(name)) name = "button";
-                
+
                 purgeDuplicates(name);
 
                 if (imgName != null)
@@ -444,7 +534,7 @@ namespace Oxide.Plugins
             public void addPlainButton(string name, CuiRectTransformComponent rectangle, GuiColor panelColor = null, float FadeIn = 0, float FadeOut = 0, GuiText text = null, Action<BasePlayer, string[]> callback = null, string close = null, bool CursorEnabled = true, string parent = "Hud", Blur blur = Blur.none)
             {
                 if (string.IsNullOrEmpty(name)) name = "plainButton";
-                
+
                 purgeDuplicates(name);
 
                 StringBuilder closeString = new StringBuilder("");
@@ -495,7 +585,7 @@ namespace Oxide.Plugins
             public void addInput(string name, CuiRectTransformComponent rectangle, Action<BasePlayer, string[]> callback, string parent = "Hud", string close = null, GuiColor panelColor = null, int charLimit = 100, GuiText text = null, float FadeIn = 0, float FadeOut = 0, bool isPassword = false, bool CursorEnabled = true, string imgName = null)
             {
                 if (string.IsNullOrEmpty(name)) name = "input";
-                
+
                 purgeDuplicates(name);
 
                 StringBuilder closeString = new StringBuilder("");
@@ -742,7 +832,7 @@ namespace Oxide.Plugins
                 GuiTracker.getGuiTracker(player).destroyGui(PluginInstance, "gametip");
             };
             GuiContainer containerGUI = new GuiContainer(this, "prompt");
-            containerGUI.addPlainPanel("background", new Rectangle(700, 377, 520, 243, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0,0,0,0.6f), 0.1f, 0.1f, GuiContainer.Blur.medium);
+            containerGUI.addPlainPanel("background", new Rectangle(700, 377, 520, 243, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0.6f), 0.1f, 0.1f, GuiContainer.Blur.medium);
             containerGUI.addPanel("msg", new Rectangle(755, 469, 394, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0.1f, 0.1f, new GuiText(message, 10, new GuiColor(255, 255, 255, 0.8f)));
             containerGUI.addPanel("header", new Rectangle(800, 404, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(0, 0, 0, 0), 0.1f, 0.1f, new GuiText(header, 25, new GuiColor(255, 255, 255, 0.8f)));
             containerGUI.addPlainButton("close", new Rectangle(802, 536, 318, 56, 1920, 1080, true), GuiContainer.Layer.overall, new GuiColor(65, 33, 32, 0.8f), 0.1f, 0.1f, new GuiText("CLOSE", 20, new GuiColor(162, 51, 46, 0.8f)), closeCallback);
@@ -834,7 +924,11 @@ namespace Oxide.Plugins
         {
             string safeName = $"{plugin.Name}_{name}";
 
-            if (!ImageLibrary.Call<bool>("HasImage", safeName)) ImageLibrary.Call("AddImage", url, safeName, (ulong)0, callback);
+            if (ImageLibrary.Call<bool>("HasImage", safeName))
+            {
+                callback?.Invoke();
+            }
+            else ImageLibrary.Call("AddImage", url, safeName, (ulong)0, callback);
 #if DEBUG
             PrintToChat($"{plugin.Name} registered {name} image");
 #endif
@@ -851,7 +945,7 @@ namespace Oxide.Plugins
             double refH = 100f / 1080f;
 
             double maxSize = 55f * Math.Pow((H / refH), 0.98f);
-            double maxLengthAtMaxSize = W * (3.911f/H);
+            double maxLengthAtMaxSize = W * (3.911f / H);
             if (length <= maxLengthAtMaxSize) return (int)maxSize;
             return (int)Math.Floor((maxSize * (maxLengthAtMaxSize / length)));
         }
@@ -1030,7 +1124,7 @@ namespace Oxide.Plugins
             #region execution
             string[] input = null;
             if (cmd.flags.ContainsKey("-input")) input = cmd.flags["-input"].ToArray();
- 
+
             if (!container.runCallback(inputName, player, input))
             {
 #if DEBUG
@@ -1052,7 +1146,7 @@ namespace Oxide.Plugins
 
         }
 
-        [ChatCommand("test")]
+        //[ChatCommand("test")]
         private void testCommand(BasePlayer player, string command, string[] args)
         {
             GuiContainer c = new GuiContainer(this, "test");
@@ -1064,9 +1158,9 @@ namespace Oxide.Plugins
                 Name = "test",
                 Components =
                 {
-                    new CuiImageComponent 
-                    { 
-                        Color = "0 1 0 0.5", 
+                    new CuiImageComponent
+                    {
+                        Color = "0 1 0 0.5",
                         Material = "assets/content/ui/uibackgroundblur-notice.mat"
                     },
                     pos

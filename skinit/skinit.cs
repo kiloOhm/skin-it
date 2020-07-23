@@ -17,7 +17,7 @@ using static Oxide.Plugins.GUICreator;
 
 namespace Oxide.Plugins
 {
-    [Info("skinit", "Ohm & Bunsen", "0.2.0")]
+    [Info("skinit", "Ohm & Bunsen", "1.2.0")]
     [Description("GUI based Item skinning")]
     class skinit : RustPlugin
     {
@@ -477,9 +477,9 @@ namespace Oxide.Plugins
             //containerGUI.addImage("GUI_1_17", new Rectangle(74, 837, 557, 71, 1921, 1081, true), "GUI_1_14", GuiContainer.Layer.under, null, FadeIn, FadeOut);
             //containerGUI.addImage("Text_1", new Rectangle(1334, 925, 460, 121, 1920, 1080, true), "Text_1", GuiContainer.Layer.menu, null, FadeIn, FadeOut);
 
-            containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 907, 471, 43, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 945, 471, 43, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 18, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
-            containerGUI.addPanel("Text_2", new Rectangle(1249, 731, 570, 50, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(50, 50, 50, 1), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
+            containerGUI.addPanel("Text_Permissions_1", new Rectangle(80, 907, 471, 43, 1920, 1080, true, Rectangle.Anchors.BottomLeft), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText("According to your permissions, you may skin...", 15, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_Permissions_2", new Rectangle(80, 945, 471, 43, 1920, 1080, true, Rectangle.Anchors.BottomLeft), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"{skinPermissions}", 18, new GuiColor(255, 255, 255, 0.3f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_2", new Rectangle(1249, 731, 570, 50, 1920, 1080, true, Rectangle.Anchors.BottomCenter), GuiContainer.Layer.menu, new GuiColor(50, 50, 50, 1), 0, 0, new GuiText("ITEM TO BE SKINNED", 23, new GuiColor(255, 255, 255, 0.3f)));
             containerGUI.display(container.player);
             panelOneBackground(container.player);
 
@@ -522,7 +522,7 @@ namespace Oxide.Plugins
             };
             GuiContainer containerGUI = new GuiContainer(this, "skinitButton", "background");
 
-            Rectangle pos = new Rectangle(1585, 833, 234, 82, 1920, 1080, true);
+            Rectangle pos = new Rectangle(1585, 833, 234, 82, 1920, 1080, true, Rectangle.Anchors.BottomCenter);
 
             if (flag == buttonStates.success)
             {
@@ -758,7 +758,7 @@ namespace Oxide.Plugins
 
 
             GuiContainer containerGUI = new GuiContainer(this, "categories", "background");
-            containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
+            containerGUI.addPanel("Text_AccountBalance", new Rectangle(1349, 790, 426, 35, 1920, 1080, true, Rectangle.Anchors.BottomCenter), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), 0, 0, new GuiText($"ACCOUNT BALANCE: {getPoints(player)}", 19, new GuiColor(255, 255, 255, 0.4f), TextAnchor.MiddleLeft));
             int i = 0;
 
             foreach (Category Cat in activeCategoriesList)
@@ -1143,7 +1143,7 @@ namespace Oxide.Plugins
         {
             if (!config.allowSuggestions && !isAdmin(player)) return;
             GuiContainer containerGUI = new GuiContainer(this, "buttonsLeft", "background");
-            containerGUI.addImage("add_image", new Rectangle(0, 5, 110, 110, 1920, 1080, true), "button_ADD", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+            containerGUI.addImage("add_image", new Rectangle(0, 5, 110, 110, 1920, 1080, true, Rectangle.Anchors.UpperLeft), "button_ADD", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
             Action<BasePlayer, string[]> popupAddNew = (bPlayer, input) =>
             {
                 suggestNewStepOne(player);
@@ -1157,15 +1157,15 @@ namespace Oxide.Plugins
                 }
                 reviewRequests(player);
             };
-            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddNew);
+            containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true, Rectangle.Anchors.UpperLeft), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddNew);
 
             bool isStaff = isAdmin(player);
             int queueSum = requestData.requests.Count;
             if(isStaff == true)
             {
-                containerGUI.addImage("check_image", new Rectangle(0, 111, 110, 110, 1920, 1080, true), "button_CHECK", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
-                containerGUI.addPlainButton("check_button", new Rectangle(0, 111, 110, 110, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupReviewRequests);
-                containerGUI.addPanel("check_text", new Rectangle(72, 130, 39, 21, 1920, 1080, true), GuiContainer.Layer.menu, new GuiColor(10, 10, 10, 0.0f), 0, 0, new GuiText($"{queueSum}", 12, new GuiColor(255, 255, 255, 0.6f), TextAnchor.MiddleLeft));
+                containerGUI.addImage("check_image", new Rectangle(0, 111, 110, 110, 1920, 1080, true, Rectangle.Anchors.UpperLeft), "button_CHECK", GuiContainer.Layer.menu, null, FadeIn = 0.25f, FadeIn = 0.25f);
+                containerGUI.addPlainButton("check_button", new Rectangle(0, 111, 110, 110, 1920, 1080, true, Rectangle.Anchors.UpperLeft), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupReviewRequests);
+                containerGUI.addPanel("check_text", new Rectangle(72, 130, 39, 21, 1920, 1080, true, Rectangle.Anchors.UpperLeft), GuiContainer.Layer.menu, new GuiColor(10, 10, 10, 0.0f), 0, 0, new GuiText($"{queueSum}", 12, new GuiColor(255, 255, 255, 0.6f), TextAnchor.MiddleLeft));
             }
             containerGUI.display(player);
         }
