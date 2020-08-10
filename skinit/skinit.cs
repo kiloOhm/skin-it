@@ -139,7 +139,7 @@ namespace Oxide.Plugins
             public string name;
             [JsonProperty(PropertyName = "original Name")]
             public string title;
-            public string safename => Regex.Replace(title, " ", "_");
+            public string safename => Regex.Replace(title, " ", "_") + $"_{url}";
             [JsonProperty(PropertyName = "Category")]
             public string category;
             [JsonProperty(PropertyName = "Item Shortname")]
@@ -1392,6 +1392,7 @@ namespace Oxide.Plugins
                     {
                         request.approve();
                         prompt(player, "Skin has been added!", "SKIN ADDED");
+                        PluginInstance.LogToFile("suggestions", $"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")} [{player.userID}]{player.displayName}(Admin) added {request.skinID}:{request.skin.name} to Category {request.category}", PluginInstance);
                     }
                     else
                     {
@@ -2177,7 +2178,7 @@ namespace Oxide.Plugins
 
 #endregion
 
-#region requestsData
+        #region requestsData
         private class RequestData
         {
             public Queue<Request> requests = new Queue<skinit.Request>();
