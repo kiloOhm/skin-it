@@ -2,11 +2,14 @@
 
 //#define DEBUG
 //#define DEBUG2
+//#define DEBUG3
 using Newtonsoft.Json;
 using Oxide.Core;
 using Oxide.Core.Configuration;
 using Oxide.Core.Libraries;
+using Oxide.Core.Libraries.Covalence;
 using Oxide.Core.Plugins;
+using Oxide.Ext.Discord.DiscordObjects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +20,7 @@ using static Oxide.Plugins.GUICreator;
 
 namespace Oxide.Plugins
 {
-    [Info("skinit", "Ohm & Bunsen", "1.2.0")]
+    [Info("skinit", "Ohm & Bunsen", "1.3.0")]
     [Description("GUI based Item skinning")]
     class skinit : RustPlugin
     {
@@ -263,6 +266,8 @@ namespace Oxide.Plugins
                 Puts("GUICreator missing! This shouldn't happen");
                 return;
             }
+
+            InitDiscord();
 
             #region config processing
 
@@ -1150,12 +1155,12 @@ namespace Oxide.Plugins
             };
             Action<BasePlayer, string[]> popupReviewRequests = (bPlayer, input) =>
             {
-                if(PluginInstance.requestData.requests.Count == 0)
+                if((PluginInstance.requestData?.requests?.Count ?? 0) == 0)
                 {
-                    prompt(player, "There are no pending suggestions!", "NO SUGGESTIONS");
+                    prompt(bPlayer, "There are no pending suggestions!", "NO SUGGESTIONS");
                     return;
                 }
-                reviewRequests(player);
+                reviewRequests(bPlayer);
             };
             containerGUI.addPlainButton("add_button", new Rectangle(0, 5, 110, 110, 1920, 1080, true, Rectangle.Anchors.UpperLeft), GuiContainer.Layer.menu, new GuiColor(0, 0, 0, 0), FadeIn = 0, FadeIn = 0, new GuiText("", 15, new GuiColor(255, 255, 255, 0.8f)), popupAddNew);
 
@@ -1178,9 +1183,16 @@ namespace Oxide.Plugins
             if(request == null) request = requestData.getNextRequest();
             if (request == null) return;
 
+#if DEBUG3
+            Puts($"request by {request.userID}, for {request.skin.name}, cat: {request.skin.category}");
+#endif
+
             string requestName = request.skin.name;
             string requestCategory = request.category;
-            string requestAuthor = BasePlayer.FindByID(request.userID).displayName;
+            string requestAuthor = BasePlayer.FindByID(request.userID)?.displayName;
+#if DEBUG3
+            Puts($"requestAuthor: {requestAuthor ?? "null"}");
+#endif
             string requestImage = request.skin.safename;
 
             destroyPopups(player);
@@ -1388,17 +1400,17 @@ namespace Oxide.Plugins
                 }
                 else {
                     request.category = activeSelection;
-                    if(isAdmin(player))
-                    {
-                        request.approve();
-                        prompt(player, "Skin has been added!", "SKIN ADDED");
-                        PluginInstance.LogToFile("suggestions", $"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")} [{player.userID}]{player.displayName}(Admin) added {request.skinID}:{request.skin.name} to Category {request.category}", PluginInstance);
-                    }
-                    else
-                    {
+                    //if(isAdmin(player))
+                    //{
+                    //    request.approve();
+                    //    prompt(player, "Skin has been added!", "SKIN ADDED");
+                    //    PluginInstance.LogToFile("suggestions", $"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss")} [{player.userID}]{player.displayName}(Admin) added {request.skinID}:{request.skin.name} to Category {request.category}", PluginInstance);
+                    //}
+                    //else
+                    //{
                         PluginInstance.requestData.addRequest(request);
                         prompt(player, "You may view your pending requests at any time.", "SKIN SUGGESTED");
-                    }
+                    //}
                     Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.updated.prefab", player.transform.position);
                     destroyPopups(player);
                     buttonsLeft(player);
@@ -1694,48 +1706,58 @@ namespace Oxide.Plugins
 
         public Item applySkin(virtualContainer container, Item item, ulong skinID)
         {
-            Item newItem = ItemManager.Create(item.info, item.amount, skinID);
-            List<Item> contentBackup = new List<Item>();
-            if(item.contents != null)
+            item.skin = skinID;
+            item.MarkDirty();
+            BaseEntity heldEntity = item.GetHeldEntity();
+            if (heldEntity != null)
             {
-                foreach (Item i in item.contents.itemList)
-                {
-                    contentBackup.Add(i);
-                }
-                foreach (Item i in contentBackup)
-                {
-                    newItem.contents.AddItem(i.info, i.amount);
-                }
+                heldEntity.skinID = skinID;
+                heldEntity.SendNetworkUpdate(BasePlayer.NetworkQueue.Update);
             }
-
-            if (item.hasCondition)
-            {
-                newItem._maxCondition = item._maxCondition;
-                newItem._condition = item._condition;
-            }
-
-            BaseProjectile oldGun = item.GetHeldEntity() as BaseProjectile;
-            BaseProjectile newGun = newItem.GetHeldEntity() as BaseProjectile;
-            if (newGun != null && oldGun != null)
-            {
-                newGun.primaryMagazine.ammoType = oldGun.primaryMagazine.ammoType;
-                newGun.primaryMagazine.contents = oldGun.primaryMagazine.contents;
-            }
-            item.Remove();
-            newItem.position = slot;
-            newItem.parent = container.itemContainer;
-
-            container.itemContainer.itemList.Add(newItem);
-            newItem.MarkDirty();
             Effect.server.Run("assets/prefabs/deployable/repair bench/effects/skinchange_spraypaint.prefab", container.player.transform.position);
-            return newItem;
+            return item;
+            //Item newItem = ItemManager.Create(item.info, item.amount, skinID);
+            //List<Item> contentBackup = new List<Item>();
+            //if(item.contents != null)
+            //{
+            //    foreach (Item i in item.contents.itemList)
+            //    {
+            //        contentBackup.Add(i);
+            //    }
+            //    foreach (Item i in contentBackup)
+            //    {
+            //        newItem.contents.AddItem(i.info, i.amount);
+            //    }
+            //}
+
+            //if (item.hasCondition)
+            //{
+            //    newItem._maxCondition = item._maxCondition;
+            //    newItem._condition = item._condition;
+            //}
+
+            //BaseProjectile oldGun = item.GetHeldEntity() as BaseProjectile;
+            //BaseProjectile newGun = newItem.GetHeldEntity() as BaseProjectile;
+            //if (newGun != null && oldGun != null)
+            //{
+            //    newGun.primaryMagazine.ammoType = oldGun.primaryMagazine.ammoType;
+            //    newGun.primaryMagazine.contents = oldGun.primaryMagazine.contents;
+            //}
+            //item.Remove();
+            //newItem.position = slot;
+            //newItem.parent = container.itemContainer;
+
+            //container.itemContainer.itemList.Add(newItem);
+            //newItem.MarkDirty();
+            //Effect.server.Run("assets/prefabs/deployable/repair bench/effects/skinchange_spraypaint.prefab", container.player.transform.position);
+            //return newItem;
         }
 
         private void addSkins(List<ulong> IDs, string category, bool cfg = true)
         {
             foreach(ulong ID in IDs)
             {
-                skinWebRequest(ID, (s) => addSkin(s, category, cfg));
+                skinWebRequest(ID, (s) => addSkin(s, category, cfg), (id) => RemoveSkinFromConfig(id));
             }
         }
 
@@ -1803,6 +1825,9 @@ namespace Oxide.Plugins
                 if (!config.skins[skin.shortname][category].Contains(skin.id)) config.skins[skin.shortname][category].Add(skin.id);
                 SaveConfig();
             }
+
+            //discord message
+            _DiscordCoreAPI.SendMessageToChannel(config.discordChannel, $"Skin: \"{skin.name}\" has been added to category {skin.category} in skinbox!\n{skin.url}");
         }
 
         private void removeSkin(Skin skin)
@@ -1815,6 +1840,25 @@ namespace Oxide.Plugins
             if (skin.categoryObject.skins.Count == 0) skin.skinnable.categories.Remove(skin.categoryObject);
             if (skin.skinnable.categories.Count == 0) skinsData.items.Remove(skin.skinnable);
             saveSkinsData();
+        }
+
+        private void RemoveSkinFromConfig(ulong id)
+        {
+            foreach(var skinnable in config.skins)
+            {
+                foreach(var category in skinnable.Value)
+                {
+                    foreach(var skin in category.Value)
+                    {
+                        if (skin == id)
+                        {
+                            category.Value.Remove(id);
+                            SaveConfig();
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
         private void changeSkinCategory(Skin skin, string newCategory)
@@ -2015,7 +2059,7 @@ namespace Oxide.Plugins
             public steamAnswer response;
         }
 
-        private void skinWebRequest(ulong ID, Action<Skin> callback)
+        private void skinWebRequest(ulong ID, Action<Skin> callback, Action<ulong> errorCallback = null)
         {
             string body = $"itemcount=1&publishedfileids%5B0%5D={ID}";
             webrequest.Enqueue("https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/", body, (code, response) =>
@@ -2038,14 +2082,14 @@ namespace Oxide.Plugins
                 if(answer.response.publishedfiledetails[0]?.title == null)
                 {
                     Puts($"Skin ID {ID} doesn't exist!");
-                    callback(null);
+                    errorCallback(ID);
                     return;
                 }
-                Puts($"got skin info: {(answer.response.publishedfiledetails[0].title)} for ID {ID}!");
+                //Puts($"got skin info: {(answer.response.publishedfiledetails[0].title)} for ID {ID}!");
                 if (answer.response.publishedfiledetails.Count < 1)
                 {
                     Puts("0 publishedfiledetails in response!");
-                    callback(null);
+                    errorCallback(ID);
                     return;
                 }
                 publishedFile pf = answer.response.publishedfiledetails[0];
@@ -2061,7 +2105,7 @@ namespace Oxide.Plugins
                 if (shortname == null)
                 {
                     Puts("no shortname found in publishedfiledetails!");
-                    callback(null);
+                    errorCallback(ID);
                     return;
                 }
                 Skin s = new Skin(pf.title, config.defaultCatName, shortname, ulong.Parse(pf.publishedfileid), pf.preview_url);
@@ -2272,6 +2316,9 @@ namespace Oxide.Plugins
 
         private class ConfigData
         {
+            [JsonProperty(PropertyName = "Discord Announcement channel")]
+            public string discordChannel;
+
             [JsonProperty(PropertyName = "Chat Command")]
             public string command;
 
@@ -2314,6 +2361,7 @@ namespace Oxide.Plugins
         {
             ConfigData output = new ConfigData
             {
+                discordChannel = "discord-bot-testing",
                 command = "skinit",
                 defaultCatName = "default",
                 allowSuggestions = true,
@@ -2471,6 +2519,235 @@ namespace Oxide.Plugins
             {"Boots Skin", "shoes.boots" }
         };
 
-#endregion
+        #endregion
+
+        #region discord
+
+        [PluginReference]
+        private Plugin DiscordCore;
+
+        private static DiscordCoreAPI _DiscordCoreAPI;
+
+        void InitDiscord()
+        {
+            if (_DiscordCoreAPI?.initialized ?? false) return;
+            if (DiscordCore == null)
+            {
+                Puts("Discord Core is not loaded! get it here https://umod.org/plugins/discord-core");
+                return;
+            }
+            _DiscordCoreAPI = new DiscordCoreAPI();
+            if (_DiscordCoreAPI.IsReady())
+            {
+                _DiscordCoreAPI.initialized = true;
+            }
+        }
+
+        #region hooks
+
+        private void OnDiscordCoreReady()
+        {
+            InitDiscord();
+        }
+
+        private void OnDiscordCoreJoin(IPlayer player)
+        {
+
+        }
+
+        private void OnDiscordCoreLeave(IPlayer player)
+        {
+
+        }
+
+        private void OnDiscordChat(IPlayer player, string message)
+        {
+
+        }
+
+        private void OnGetChannelMessages(List<Message> messages, string responseKey)
+        {
+            _DiscordCoreAPI.ExecuteCallback(responseKey, messages);
+        }
+
+        #endregion
+
+        #region commands
+
+        #endregion
+
+        public class DiscordCoreAPI
+        {
+            public bool initialized { get; set; } = false;
+
+            private Dictionary<string, Action<List<Message>>> Callbacks = new Dictionary<string, Action<List<Message>>>();
+
+            public void RegisterCallback(string responseKey, Action<List<Message>> callback)
+            {
+                if (!Callbacks.ContainsKey(responseKey)) Callbacks.Add(responseKey, callback);
+            }
+
+            public void ExecuteCallback(string responseKey, List<Message> messages)
+            {
+                if (Callbacks.ContainsKey(responseKey))
+                {
+                    try
+                    {
+                        Callbacks[responseKey]?.Invoke(messages);
+                    }
+                    catch (Exception e)
+                    {
+                        PluginInstance.Puts($"DiscordCoreAPI: Failed to execute callback: {responseKey}\n{e.Message}");
+                    }
+                    Callbacks.Remove(responseKey);
+                }
+            }
+
+            public bool IsReady()
+            {
+                object response = PluginInstance.DiscordCore.Call(nameof(IsReady));
+                if (response == null) return false;
+                return (bool)response;
+            }
+
+            public void UpdatePresence(Presence presence)
+            {
+                PluginInstance.DiscordCore.Call(nameof(UpdatePresence), presence);
+            }
+
+            public void RegisterCommand(string command, Plugin plugin, Func<IPlayer, string, string, string[], object> method, string helpText, string permission = null, bool allowInChannel = false)
+            {
+                PluginInstance.DiscordCore.Call(nameof(RegisterCommand), command, plugin, method, helpText, permission, allowInChannel);
+            }
+
+            public GuildMember GetGuildMember(string steamId)
+            {
+                object response = PluginInstance.DiscordCore.Call(nameof(GetGuildMember), steamId);
+                if (response == null) return null;
+                GuildMember guildMember = response as GuildMember;
+                return guildMember;
+            }
+
+            #region messages
+
+            public void SendMessageToChannel(string channelNameOrId, string message)
+            {
+                PluginInstance.DiscordCore.Call(nameof(SendMessageToChannel), channelNameOrId, message);
+            }
+
+            public void SendMessageToChannel(string channelNameOrId, Message message)
+            {
+                PluginInstance.DiscordCore.Call(nameof(SendMessageToChannel), channelNameOrId, message);
+            }
+
+            public void SendMessageToChannel(string channelNameOrId, Embed message)
+            {
+                PluginInstance.DiscordCore.Call(nameof(SendMessageToChannel), channelNameOrId, message);
+            }
+
+            public void SendMessageToUser(string id, string message)
+            {
+                PluginInstance.DiscordCore.Call(nameof(SendMessageToUser), id, message);
+            }
+
+            public void SendMessageToUser(IPlayer player, string message)
+            {
+                PluginInstance.DiscordCore.Call(nameof(SendMessageToUser), player, message);
+            }
+
+            public void DeleteMessage(Message message)
+            {
+                PluginInstance.DiscordCore.Call(nameof(DeleteMessage), message);
+            }
+
+            #endregion
+
+            #region channels
+
+            public List<Channel> GetAllChannels()
+            {
+                object response = PluginInstance.DiscordCore.Call(nameof(GetAllChannels));
+                if (response != null)
+                {
+                    return response as List<Channel>;
+                }
+                return null;
+            }
+
+            public Channel GetChannel(string nameOrId)
+            {
+                object response = PluginInstance.DiscordCore.Call(nameof(GetChannel), nameOrId);
+                if (response != null)
+                {
+                    return response as Channel;
+                }
+                return null;
+            }
+
+            public void GetChannelMessages(string nameOrId, string responseKey)
+            {
+                PluginInstance.DiscordCore.Call(nameof(GetChannelMessages), nameOrId, responseKey);
+            }
+
+            public void SubscribeChannel(string channelNameOrId, Plugin plugin, Func<Message, object> method)
+            {
+                PluginInstance.DiscordCore.Call(nameof(SubscribeChannel), channelNameOrId, plugin, method);
+            }
+
+            public void UnsubscribeChannel(string channelNameOrId, Plugin plugin)
+            {
+                PluginInstance.DiscordCore.Call(nameof(UnsubscribeChannel), channelNameOrId, plugin);
+            }
+
+            #endregion
+
+            #region Roles
+
+            public Role GetRole(string nameOrId)
+            {
+                object response = PluginInstance.DiscordCore.Call(nameof(GetRole), nameOrId);
+                if (response == null) return null;
+                Role role = response as Role;
+                return role;
+            }
+
+            public bool? UserHasRole(string userId, string nameOrId)
+            {
+                object response = PluginInstance.DiscordCore.Call(nameof(UserHasRole), userId, nameOrId);
+                if (response == null) return null;
+                bool truth = (bool)response;
+                return truth;
+            }
+
+            public void AddRoleToUser(string userId, string nameOrId)
+            {
+                PluginInstance.DiscordCore.Call(nameof(AddRoleToUser), userId, nameOrId);
+            }
+
+            public void RemoveRoleFromUser(string userId, string nameOrId)
+            {
+                PluginInstance.DiscordCore.Call(nameof(RemoveRoleFromUser), userId, nameOrId);
+            }
+
+            public void CreateGuildRole(Role role)
+            {
+                PluginInstance.DiscordCore.Call(nameof(CreateGuildRole), role);
+            }
+
+            public void DeleteGuildRole(Role role)
+            {
+                PluginInstance.DiscordCore.Call(nameof(CreateGuildRole), role);
+            }
+
+            public void DeleteGuildRole(string roleId)
+            {
+                PluginInstance.DiscordCore.Call(nameof(CreateGuildRole), roleId);
+            }
+
+            #endregion
+        }
+
+
+        #endregion
     }
 }
