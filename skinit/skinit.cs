@@ -22,7 +22,7 @@ using static Oxide.Plugins.GUICreator;
 
 namespace Oxide.Plugins
 {
-    [Info("skinit", "Ohm & Bunsen", "1.4.0")]
+    [Info("skinit", "Ohm & Bunsen", "1.5.0")]
     [Description("GUI based Item skinning")]
     class skinit : RustPlugin
     {
