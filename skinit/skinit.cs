@@ -10,7 +10,9 @@ using Oxide.Core.Libraries;
 using Oxide.Core.Libraries.Covalence;
 using Oxide.Core.Plugins;
 using Oxide.Ext.Discord.DiscordObjects;
+using Steamworks;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,7 +22,7 @@ using static Oxide.Plugins.GUICreator;
 
 namespace Oxide.Plugins
 {
-    [Info("skinit", "Ohm & Bunsen", "1.3.0")]
+    [Info("skinit", "Ohm & Bunsen", "1.4.0")]
     [Description("GUI based Item skinning")]
     class skinit : RustPlugin
     {
@@ -81,7 +83,7 @@ namespace Oxide.Plugins
                     {
                         this.skin = skin;
                         PluginInstance.saveRequestsData();
-                        PluginInstance.guiCreator.registerImage(PluginInstance, skin.safename, skin.url);
+                        PluginInstance.guiCreator.registerImage(PluginInstance, skin.safename, skin.url, imgSizeX: config.imgRes, imgSizeY: config.imgRes);
                     }
                     callback?.Invoke(skin);
                 });
@@ -268,11 +270,12 @@ namespace Oxide.Plugins
             }
 
             InitDiscord();
+            ServerMgr.Instance.StartCoroutine(InitApprovedSkins());
 
             #region config processing
 
             //re-register skin images
-            skinsData.registerImages();
+            ServerMgr.Instance.StartCoroutine(skinsData.RegisterImages());
 
             //add new skins
             Dictionary<string, List<ulong>> toBeAdded = new Dictionary<string, List<ulong>>();
@@ -305,7 +308,7 @@ namespace Oxide.Plugins
             }
             foreach (string cat in toBeAdded.Keys)
             {
-                addSkins(toBeAdded[cat], cat, false);
+                ServerMgr.Instance.StartCoroutine(AddSkins(toBeAdded[cat], cat, false));
             }
 
             //delete removed skins
@@ -320,11 +323,29 @@ namespace Oxide.Plugins
             }
             saveSkinsData();
 
+            //delete approved skins
+            List<ulong> toBeRemoved = new List<ulong>();
+            foreach (Skinnable item in skinsData.items)
+            {
+                foreach (Category cat in item.categories)
+                {
+                    cat.skins.RemoveAll(skin => IsApproved(skin.id));
+                }
+            }
+            saveSkinsData();
+            
+            foreach(ulong id in toBeRemoved)
+            {
+                Puts($"purging approved skin: {id} from data and config");
+                RemoveSkinFromConfig(id);
+            }
+
             #endregion
 
             //commands
             cmd.AddChatCommand(config.command, this, nameof(skinitCommand));
             cmd.AddConsoleCommand("skinit.add", this, nameof(addCommand));
+            cmd.AddConsoleCommand("skinit.approved", this, nameof(approvedCommand));
 
             //images
             guiCreator.registerImage(this, "GUI_1_1", "https://i.imgur.com/jqRb4f5.jpg");
@@ -371,12 +392,7 @@ namespace Oxide.Plugins
             guiCreator.registerImage(this, "lock_lock", "https://i.imgur.com/4Qx4tgi.png");
             guiCreator.registerImage(this, "lock_unlockgreen", "https://i.imgur.com/ZMnJgDb.png");
             guiCreator.registerImage(this, "lock_lockgreen", "https://i.imgur.com/Np52FK8.png");
-
-
-
-            guiCreator.registerImage(this, "smile", "https://b2.pngbarn.com/png/341/447/785/emoji-with-mask-corona-coronavirus-convid-yellow-facial-expression-emoticon-nose-smile-head-png-clip-art-thumbnail.png");
-            guiCreator.registerImage(this, "sad", "https://s3.amazonaws.com/pix.iemoji.com/images/emoji/apple/ios-12/256/loudly-crying-face.png");
-            
+           
             //lang
             lang.RegisterMessages(messages, this);
 
@@ -1328,6 +1344,15 @@ namespace Oxide.Plugins
                         return;
                     }
                     Request request = new Request(bPlayer.userID, skinID);
+
+                    if(IsApproved(skinID))
+                    {
+                        destroyPopups(player);
+                        prompt(player, "You can't suggest an approved skin!", "INVALID SKIN");
+                        Effect.server.Run("assets/prefabs/locks/keypad/effects/lock.code.denied.prefab", player.transform.position);
+                        return;
+                    }
+
                     Action<Skin> callback = (skin) =>
                     {
                         GuiTracker tracker = GuiTracker.getGuiTracker(player);
@@ -1639,6 +1664,27 @@ namespace Oxide.Plugins
 
         #region commands
 
+        private void approvedCommand(ConsoleSystem.Arg arg)
+        {
+            ulong? skinID = null; 
+            if(arg.Args.Length > 0)
+            {
+                skinID = ulong.Parse(arg.Args[0]);
+            }
+
+            if(skinID != null)
+            {
+                if (ApprovedSkins.Contains(skinID.Value))
+                {
+                    Puts($"skin: {skinID} is approved");
+                }
+                else
+                {
+                    Puts($"skin: {skinID} is not approved");
+                }
+            }
+        }
+
         private void skinitCommand(BasePlayer player, string command, string[] args)
         {
 #if DEBUG
@@ -1697,8 +1743,8 @@ namespace Oxide.Plugins
             {
                 IDs.Add(ulong.Parse(args[i]));
             }
-            addSkins(IDs, (category == null)?config.defaultCatName:args[0]);
-             return $"adding {IDs.Count} {((IDs.Count == 1)?"skin":"skins")}";
+            ServerMgr.Instance.StartCoroutine(AddSkins(IDs, (category == null)?config.defaultCatName:args[0]));
+            return $"adding {IDs.Count} {((IDs.Count == 1)?"skin":"skins")}";
         }
         #endregion
 
@@ -1753,11 +1799,18 @@ namespace Oxide.Plugins
             //return newItem;
         }
 
-        private void addSkins(List<ulong> IDs, string category, bool cfg = true)
+        private IEnumerator AddSkins(List<ulong> IDs, string category, bool cfg = true)
         {
             foreach(ulong ID in IDs)
             {
+                if(IsApproved(ID))
+                {
+                    Puts($"purging approved skin from config! ({ID})");
+                    RemoveSkinFromConfig(ID);
+                    continue;
+                }
                 skinWebRequest(ID, (s) => addSkin(s, category, cfg), (id) => RemoveSkinFromConfig(id));
+                yield return null;
             }
         }
 
@@ -1767,6 +1820,13 @@ namespace Oxide.Plugins
             {
                 return;
             }
+
+            if (IsApproved(skin.id))
+            {
+                Puts($"trying to add approved skin! ({skin.id})");
+                return;
+            }
+
             skin.category = category ?? config.defaultCatName;
             category = skin.category;
 
@@ -1795,7 +1855,7 @@ namespace Oxide.Plugins
             if (skinsData.GetSkin(cat, skin.id) == null)
             {
                 cat.skins.Add(skin);
-                guiCreator.registerImage(this, skin.safename, skin.url);
+                guiCreator.registerImage(this, skin.safename, skin.url, imgSizeX: config.imgRes, imgSizeY: config.imgRes);
             }
             saveSkinsData();
 
@@ -2126,9 +2186,16 @@ namespace Oxide.Plugins
             {
             }
 
-            public void registerImages()
+            private bool registryInProgress = false;
+
+            public IEnumerator RegisterImages()
             {
-                foreach(Skinnable item in items)
+                if (registryInProgress)
+                {
+                    yield break;
+                }
+
+                foreach (Skinnable item in items)
                 {
 #if DEBUG2
                     PluginInstance.Puts($"re-registering categories for {item.shortname}");
@@ -2143,7 +2210,12 @@ namespace Oxide.Plugins
 #if DEBUG2
                             PluginInstance.Puts($"re-registering {skin.safename}");
 #endif
-                            PluginInstance.guiCreator.registerImage(PluginInstance, skin.safename, skin.url);
+                            registryInProgress = true;
+                            Action callback = () =>
+                            {
+                                registryInProgress = false;
+                            };
+                            PluginInstance.guiCreator.registerImage(PluginInstance, skin.safename, skin.url, callback, imgSizeX: config.imgRes, imgSizeY: config.imgRes);
                         }
                     }
                 }
@@ -2309,7 +2381,7 @@ namespace Oxide.Plugins
 
 #endregion
 
-#endregion
+        #endregion
 
         #region Config
         private static ConfigData config;
@@ -2318,6 +2390,12 @@ namespace Oxide.Plugins
         {
             [JsonProperty(PropertyName = "Discord Announcement channel")]
             public string discordChannel;
+
+            [JsonProperty(PropertyName = "Skin image resolution")]
+            public int imgRes;
+
+            [JsonProperty(PropertyName = "Allow approved skins")]
+            public bool allowApprovedSkins;
 
             [JsonProperty(PropertyName = "Chat Command")]
             public string command;
@@ -2362,6 +2440,8 @@ namespace Oxide.Plugins
             ConfigData output = new ConfigData
             {
                 discordChannel = "discord-bot-testing",
+                imgRes = 200,
+                allowApprovedSkins = false,
                 command = "skinit",
                 defaultCatName = "default",
                 allowSuggestions = true,
@@ -2418,106 +2498,137 @@ namespace Oxide.Plugins
         {
             {"noPermission", "You don't have permission to use this command!"}
         };
-#endregion
+        #endregion
+
+        #region approved skins
+
+        private List<ulong> ApprovedSkins = new List<ulong>();
+
+        private IEnumerator InitApprovedSkins()
+        {
+            yield return new WaitWhile(() => Steamworks.SteamInventory.Definitions == null);
+
+            foreach (InventoryDef item in Steamworks.SteamInventory.Definitions)
+            {
+                if (item == null) continue;
+
+                ulong workshopid;
+                if (!ulong.TryParse(item.GetProperty("workshopid"), out workshopid)) continue;
+
+                ApprovedSkins.Add(workshopid);
+            }
+
+#if DEBUG2
+            Puts($"Approved skins initialised. count: {ApprovedSkins.Count}");
+#endif
+        }
+
+        private bool IsApproved(ulong skinId)
+        {
+            if (config.allowApprovedSkins) return false;
+            return ApprovedSkins.Contains(skinId);
+        }
+
+        #endregion
 
         #region shortname LUT
 
         private static Dictionary<string, string> shortnames = new Dictionary<string, string>
-        {
-            {"Acoustic Guitar", "fun.guitar"},
-            {"AK47", "rifle.ak"},
-            {"Armored Door", "door.hinged.toptier"},
-            {"Armored Double Door", "door.double.hinged.toptier"},
-            {"Balaclava", "mask.balaclava"},
-            {"Bandana", "mask.bandana"},
-            {"Bearskin Rug", "rug.bear" },
-            {"Beenie Hat", "hat.beenie"},
-            {"Bolt Rifle", "rifle.bolt"},
-            {"Bone Club", "bone.club"},
-            {"Bone Knife", "knife.bone"},
-            {"Boonie Hat", "hat.boonie"},
-            {"Bucket Helmet", "bucket.helmet"},
-            {"Burlap Headwrap", "burlap.headwrap"},
-            {"Burlap Pants", "burlap.trousers"},
-            {"Burlap Shirt", "burlap.shirt"},
-            {"Burlap Shoes", "burlap.shoes"},
-            {"Cap", "hat.cap"},
-            {"Chair", "chair" },
-            {"Coffee Can Helmet", "coffeecan.helmet"},
-            {"Collared Shirt", "shirt.collared"},
-            {"Combat Knife", "knife.combat"},
-            {"Concrete Barricade", "barricade.concrete"},
-            {"Crossbow", "crossbow"},
-            {"Custom SMG", "smg.2"},
-            {"Deer Skull Mask", "deer.skull.mask"},
-            {"Double Barrel Shotgun", "shotgun.double"},
-            {"Eoka Pistol", "pistol.eoka"},
-            {"F1 Grenade", "grenade.f1"},
-            {"Fridge", "fridge" },
-            {"Furnace", "furnace" },
-            {"Garage Door", "wall.frame.garagedoor"},
-            {"Hammer", "hammer"},
-            {"Hatchet", "hatchet"},
-            {"Hide Halterneck", "attire.hide.helterneck"},
-            {"Hide Pants", "attire.hide.pants"},
-            {"Hide Poncho", "attire.hide.poncho"},
-            {"Hide Shirt", "attire.hide.vest"},
-            {"Hide Shoes", "attire.hide.boots"},
-            {"Hide Skirt", "attire.hide.skirt"},
-            {"Hoodie", "hoodie"},
-            {"Large Wood Box", "box.wooden.large"},
-            {"Leather Gloves", "burlap.gloves"},
-            {"Locker", "locker" },
-            {"Long TShirt", "tshirt.long"},
-            {"Longsword", "longsword"},
-            {"LR300", "rifle.lr300"},
-            {"M249", "lmg.m249" },
-            {"M39", "rifle.m39" },
-            {"Metal Chest Plate", "metal.plate.torso"},
-            {"Metal Facemask", "metal.facemask"},
-            {"Miner Hat", "hat.miner"},
-            {"Mp5", "smg.mp5"},
-            {"Pants", "pants"},
-            {"Pick Axe", "pickaxe"},
-            {"Pump Shotgun", "shotgun.pump"},
-            {"Python", "pistol.python"},
-            {"Reactive Target", "target.reactive"},
-            {"Revolver", "pistol.revolver"},
-            {"Riot Helmet", "riot.helmet"},
-            {"Roadsign Pants", "roadsign.kilt"},
-            {"Roadsign Vest", "roadsign.jacket"},
-            {"Rock", "rock"},
-            {"Rocket Launcher", "rocket.launcher"},
-            {"Rug", "rug" },
-            {"Salvaged Hammer", "hammer.salvaged"},
-            {"Salvaged Icepick", "icepick.salvaged"},
-            {"Sandbag Barricade", "barricade.sandbags"},
-            {"Satchel Charge", "explosive.satchel"},
-            {"Semi-Automatic Pistol", "pistol.semiauto"},
-            {"Semi-Automatic Rifle", "rifle.semiauto"},
-            {"Sheet Metal Door", "door.hinged.metal"},
-            {"Sheet Metal Double Door", "door.double.hinged.metal"},
-            {"Shorts", "pants.shorts"},
-            {"Sleeping Bag", "sleepingbag"},
-            { "Spinning Wheel", "spinner.wheel"},
-            {"Snow Jacket", "jacket.snow"},
-            {"Stone Hatchet", "stonehatchet"},
-            {"Stone Pick Axe", "stone.pickaxe"},
-            {"Sword", "salvaged.sword"},
-            {"Table", "table" },
-            {"Tank Top", "shirt.tanktop"},
-            {"Thompson", "smg.thompson"},
-            {"TShirt", "tshirt"},
-            {"Vagabond Jacket", "jacket"},
-            {"Vending Machine", "vending.machine"},
-            {"Water Purifier", "water.purifier"},
-            {"Waterpipe Shotgun", "shotgun.waterpipe"},
-            {"Wood Storage Box", "box.wooden"},
-            {"Wooden Door", "door.hinged.wood"},
-            {"Wooden Double Door", "door.double.hinged.wood"},
-            {"Work Boots", "shoes.boots"},
-            {"Boots Skin", "shoes.boots" }
-        };
+            {
+                {"Acoustic Guitar", "fun.guitar"},
+                {"AK47", "rifle.ak"},
+                {"Armored Door", "door.hinged.toptier"},
+                {"Armored Double Door", "door.double.hinged.toptier"},
+                {"Balaclava", "mask.balaclava"},
+                {"Bandana", "mask.bandana"},
+                {"Bearskin Rug", "rug.bear" },
+                {"Beenie Hat", "hat.beenie"},
+                {"Bolt Rifle", "rifle.bolt"},
+                {"Bone Club", "bone.club"},
+                {"Bone Knife", "knife.bone"},
+                {"Boonie Hat", "hat.boonie"},
+                {"Bucket Helmet", "bucket.helmet"},
+                {"Burlap Headwrap", "burlap.headwrap"},
+                {"Burlap Pants", "burlap.trousers"},
+                {"Burlap Shirt", "burlap.shirt"},
+                {"Burlap Shoes", "burlap.shoes"},
+                {"Cap", "hat.cap"},
+                {"Chair", "chair" },
+                {"Coffee Can Helmet", "coffeecan.helmet"},
+                {"Collared Shirt", "shirt.collared"},
+                {"Combat Knife", "knife.combat"},
+                {"Concrete Barricade", "barricade.concrete"},
+                {"Crossbow", "crossbow"},
+                {"Custom SMG", "smg.2"},
+                {"Deer Skull Mask", "deer.skull.mask"},
+                {"Double Barrel Shotgun", "shotgun.double"},
+                {"Eoka Pistol", "pistol.eoka"},
+                {"F1 Grenade", "grenade.f1"},
+                {"Fridge", "fridge" },
+                {"Furnace", "furnace" },
+                {"Garage Door", "wall.frame.garagedoor"},
+                {"Hammer", "hammer"},
+                {"Hatchet", "hatchet"},
+                {"Hide Halterneck", "attire.hide.helterneck"},
+                {"Hide Pants", "attire.hide.pants"},
+                {"Hide Poncho", "attire.hide.poncho"},
+                {"Hide Shirt", "attire.hide.vest"},
+                {"Hide Shoes", "attire.hide.boots"},
+                {"Hide Skirt", "attire.hide.skirt"},
+                {"Hoodie", "hoodie"},
+                {"Large Wood Box", "box.wooden.large"},
+                {"Leather Gloves", "burlap.gloves"},
+                {"Locker", "locker" },
+                {"Long TShirt", "tshirt.long"},
+                {"Longsword", "longsword"},
+                {"LR300", "rifle.lr300"},
+                {"M249", "lmg.m249" },
+                {"M39", "rifle.m39" },
+                {"Metal Chest Plate", "metal.plate.torso"},
+                {"Metal Facemask", "metal.facemask"},
+                {"Miner Hat", "hat.miner"},
+                {"Mp5", "smg.mp5"},
+                {"Pants", "pants"},
+                {"Pick Axe", "pickaxe"},
+                {"Pump Shotgun", "shotgun.pump"},
+                {"Python", "pistol.python"},
+                {"Reactive Target", "target.reactive"},
+                {"Revolver", "pistol.revolver"},
+                {"Riot Helmet", "riot.helmet"},
+                {"Roadsign Pants", "roadsign.kilt"},
+                {"Roadsign Vest", "roadsign.jacket"},
+                {"Rock", "rock"},
+                {"Rocket Launcher", "rocket.launcher"},
+                {"Rug", "rug" },
+                {"Salvaged Hammer", "hammer.salvaged"},
+                {"Salvaged Icepick", "icepick.salvaged"},
+                {"Sandbag Barricade", "barricade.sandbags"},
+                {"Satchel Charge", "explosive.satchel"},
+                {"Semi-Automatic Pistol", "pistol.semiauto"},
+                {"Semi-Automatic Rifle", "rifle.semiauto"},
+                {"Sheet Metal Door", "door.hinged.metal"},
+                {"Sheet Metal Double Door", "door.double.hinged.metal"},
+                {"Shorts", "pants.shorts"},
+                {"Sleeping Bag", "sleepingbag"},
+                { "Spinning Wheel", "spinner.wheel"},
+                {"Snow Jacket", "jacket.snow"},
+                {"Stone Hatchet", "stonehatchet"},
+                {"Stone Pick Axe", "stone.pickaxe"},
+                {"Sword", "salvaged.sword"},
+                {"Table", "table" },
+                {"Tank Top", "shirt.tanktop"},
+                {"Thompson", "smg.thompson"},
+                {"TShirt", "tshirt"},
+                {"Vagabond Jacket", "jacket"},
+                {"Vending Machine", "vending.machine"},
+                {"Water Purifier", "water.purifier"},
+                {"Waterpipe Shotgun", "shotgun.waterpipe"},
+                {"Wood Storage Box", "box.wooden"},
+                {"Wooden Door", "door.hinged.wood"},
+                {"Wooden Double Door", "door.double.hinged.wood"},
+                {"Work Boots", "shoes.boots"},
+                {"Boots Skin", "shoes.boots" }
+            };
 
         #endregion
 
